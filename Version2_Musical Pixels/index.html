@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Music Pixels: VibeCode Edition</title>
+    <style>
+        /* --- VIBECODE AESTHETICS --- */
+        :root {
+            --bg-color: #050505;
+            --panel-bg: rgba(10, 10, 12, 0.95);
+            --text-main: #a0a0a0;
+            --accent-cyan: #00f0ff;
+            --accent-magenta: #ff0055;
+            --accent-green: #00ff41;
+            --accent-yellow: #ffcc00;
+            --accent-blue: #0088ff;
+            --accent-orange: #ff8800;
+            --accent-rock: #888899;
+            --accent-enemy: #ff3333;
+            --accent-tree: #8b4513;
+            --accent-leaf: #32cd32;
+            --border-color: #333;
+            --font-stack: 'Courier New', Courier, monospace;
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            overflow: hidden;
+            font-family: var(--font-stack);
+            color: var(--text-main);
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* CRT SCANLINE OVERLAY */
+        body::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 100;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+
+        /* --- UI LAYER --- */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 10px;
+            box-sizing: border-box;
+            z-index: 10;
+        }
+
+        /* TOP BAR */
+        #top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: auto;
+            flex-wrap: wrap;
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 5px;
+            gap: 10px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        button {
+            background: #1a1a1a;
+            color: var(--text-main);
+            border: 1px solid var(--text-main);
+            padding: 4px 8px;
+            font-family: inherit;
+            font-size: 10px;
+            text-transform: uppercase;
+            cursor: pointer;
+            min-width: 40px;
+            transition: all 0.1s;
+        }
+
+        button:active {
+            transform: translateY(1px);
+            background: #333;
+        }
+
+        button.active {
+            background: var(--text-main);
+            color: #000;
+        }
+
+        button#btn-mode-runner.active {
+            background: var(--accent-yellow);
+            color: #000;
+            border-color: var(--accent-yellow);
+            box-shadow: 0 0 5px var(--accent-yellow);
+        }
+
+        button#btn-mode-erase.active {
+            background: #fff;
+            color: #000;
+        }
+
+        button#btn-mode-water.active {
+            background: var(--accent-blue);
+            color: #fff;
+        }
+
+        button#btn-mode-ladder.active {
+            background: var(--accent-orange);
+            color: #000;
+        }
+
+        button#btn-mode-rock.active {
+            background: var(--accent-rock);
+            color: #000;
+        }
+
+        button#btn-mode-plant.active {
+            background: var(--accent-green);
+            color: #000;
+        }
+
+        button#btn-mode-tree.active {
+            background: var(--accent-tree);
+            color: #fff;
+        }
+
+        button#btn-mode-leaf.active {
+            background: var(--accent-leaf);
+            color: #fff;
+        }
+
+        button#btn-mode-portal.active {
+            background: #9900ff;
+            color: #fff;
+        }
+
+        button#btn-mode-enemy.active {
+            background: var(--accent-enemy);
+            color: #fff;
+        }
+
+        button#btn-pulse.active {
+            background: #fff;
+            color: #000;
+            animation: pulse 0.5s infinite;
+        }
+
+        button.record-btn.active {
+            background: var(--accent-magenta);
+            color: #fff;
+            animation: pulse 1s infinite;
+        }
+
+        .size-control {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 10px;
+            color: var(--text-main);
+            border: 1px solid #333;
+            padding: 2px 5px;
+            background: #111;
+        }
+
+        /* BOTTOM CONTROLS (TRACKER STYLE) */
+        #controls-container {
+            pointer-events: auto;
+            background: var(--panel-bg);
+            border-top: 1px solid var(--border-color);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .panel-header {
+            font-size: 10px;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+            border-bottom: 1px dashed #333;
+            padding-bottom: 2px;
+        }
+
+        .control-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .knob-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 40px;
+        }
+
+        .knob-label {
+            font-size: 9px;
+            color: #666;
+            margin-bottom: 2px;
+            text-align: center;
+        }
+
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 2px;
+            background: #333;
+            outline: none;
+            margin: 5px 0;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 8px;
+            height: 12px;
+            background: var(--text-main);
+            border: none;
+            cursor: pointer;
+        }
+
+        /* Color coded sections */
+        .sec-synth input[type=range]::-webkit-slider-thumb {
+            background: var(--accent-cyan);
+        }
+
+        .sec-fx input[type=range]::-webkit-slider-thumb {
+            background: var(--accent-magenta);
+        }
+
+        /* OVERLAY */
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            text-align: center;
+        }
+
+        .glitch-text {
+            font-size: 2rem;
+            color: #fff;
+            text-shadow: 2px 0 var(--accent-magenta), -2px 0 var(--accent-cyan);
+            margin-bottom: 20px;
+        }
+
+        .start-btn {
+            padding: 15px 30px;
+            border: 1px solid var(--accent-green);
+            color: var(--accent-green);
+            font-size: 1.2rem;
+            cursor: pointer;
+            background: transparent;
+        }
+
+        .start-btn:hover {
+            background: var(--accent-green);
+            color: #000;
+        }
+
+        /* HELPER TOAST */
+        #helper-text {
+            position: absolute;
+            bottom: 120px;
+            width: 100%;
+            text-align: center;
+            color: var(--accent-yellow);
+            font-size: 10px;
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+            text-shadow: 1px 1px 0 #000;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="game-container">
+        <canvas id="pixelCanvas"></canvas>
+
+        <div id="helper-text">WASD / ARROWS = MOVE | TAB = THROW BOMB</div>
+
+        <div id="ui-layer">
+            <!-- TOP: Transport & Tools -->
+            <div id="top-bar">
+                <div class="btn-group">
+                    <button id="btn-play" class="active">►</button>
+                    <button id="btn-stop">■</button>
+                    <button id="btn-rec" class="record-btn">REC LOOP</button>
+                    <button id="btn-clear">CLR</button>
+                </div>
+
+                <div class="btn-group">
+                    <button id="btn-mode-sand" class="active">SAND</button>
+                    <button id="btn-mode-draw">LINE</button>
+                    <button id="btn-mode-rock">ROCK</button>
+                    <button id="btn-mode-water">H2O</button>
+                    <button id="btn-mode-plant">PLANT</button>
+                    <button id="btn-mode-tree">TREE</button>
+                    <button id="btn-mode-leaf">LEAF</button>
+                    <button id="btn-mode-portal">PORTAL</button>
+                    <button id="btn-mode-enemy">ENEMY</button>
+                    <button id="btn-mode-ladder">LADDER</button>
+                    <button id="btn-mode-erase">ERASE</button>
+                    <button id="btn-mode-runner">RUNNER</button>
+                </div>
+
+                <div class="size-control">
+                    SIZE <input type="range" id="brush-size" min="1" max="10" value="2" style="width: 30px">
+                    BPM <input type="range" id="bpm-slider" min="0.5" max="3.0" step="0.1" value="1.0"
+                        style="width: 40px">
+                </div>
+
+                <div class="btn-group">
+                    <button id="btn-pulse">PULSE: OFF</button>
+                    <button id="btn-mirror">MIR: OFF</button>
+                </div>
+
+                <div style="font-size: 10px; margin-left: auto;">
+                    <span style="color:var(--accent-magenta)"> BPM:</span> <span id="display-bpm">120</span>
+                </div>
+            </div>
+
+            <!-- BOTTOM: Synth & FX -->
+            <div id="controls-container">
+                <div style="display:flex; justify-content:space-between; margin-top:5px;">
+
+                    <!-- SYNTH SECTION -->
+                    <div style="flex:1; border-right:1px solid #333; padding-right:10px;">
+                        <div class="panel-header" style="color:var(--accent-cyan)">SYNTH ENGINE</div>
+                        <div class="control-row sec-synth">
+                            <div class="knob-container"><label class="knob-label">MIX</label><input type="range"
+                                    id="p-mix" min="0" max="1" step="0.01" value="0.5"></div>
+                            <div class="knob-container"><label class="knob-label">DETUNE</label><input type="range"
+                                    id="p-detune" min="0" max="50" value="15"></div>
+                            <div class="knob-container"><label class="knob-label">ATK</label><input type="range"
+                                    id="p-atk" min="0.01" max="1" step="0.01" value="0.1"></div>
+                            <div class="knob-container"><label class="knob-label">REL</label><input type="range"
+                                    id="p-rel" min="0.1" max="2" step="0.1" value="0.5"></div>
+                            <div class="knob-container"><label class="knob-label">WOBBLE</label><input type="range"
+                                    id="p-wobble" min="0" max="1" step="0.01" value="0.3"></div>
+                        </div>
+                    </div>
+
+                    <!-- FX SECTION -->
+                    <div style="flex:1; padding-left:10px;">
+                        <div class="panel-header" style="color:var(--accent-magenta)">FX / ENV</div>
+                        <div class="control-row sec-fx">
+                            <div class="knob-container"><label class="knob-label">GLITCH</label><input type="range"
+                                    id="p-glitch" min="0" max="1" step="0.01" value="0"></div>
+                            <div class="knob-container"><label class="knob-label">DELAY</label><input type="range"
+                                    id="p-delay" min="0" max="0.8" step="0.01" value="0.2"></div>
+                            <div class="knob-container"><label class="knob-label">SPEED</label><input type="range"
+                                    id="p-speed" min="0.5" max="2.0" step="0.1" value="1.0"></div>
+                            <div class="knob-container"><label class="knob-label">VOL</label><input type="range"
+                                    id="p-vol" min="0" max="1" step="0.01" value="0.8"></div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div id="overlay">
+            <h1 class="glitch-text">MUSIC PIXELS v2</h1>
+            <p style="color:#888; margin-bottom: 30px; font-size: 0.8rem;">
+                GENERATIVE AUDIO-VISUAL WORKSTATION<br>
+                DRAW TO CREATE SOUND + LIFE
+            </p>
+            <button class="start-btn" id="start-btn">INITIALIZE SYSTEM</button>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * MUSIC PIXELS v2 - ARCHITECTURE
+         * 1. Audio Engine: Web Audio API with Analyser for reactivity + SFX.
+         * 2. Simulation Engine: Cellular Automata (Sand/Water/Rock/Plant/Tree/Leaf) on HTML5 Canvas.
+         * 3. Loop Engine: Event-based recorder.
+         * 4. Player Engine: Physics + Digging + Bomb + Portals + Enemies.
+         */
+
+        // --- CONFIGURATION ---
+        const CANVAS_W = 320; // Low res for pixel look
+        const CANVAS_H = 180;
+
+        // --- TYPES ---
+        const TYPE_EMPTY = 0;
+        const TYPE_SAND = 1;
+        const TYPE_WALL = 2;
+        const TYPE_WATER = 3;
+        const TYPE_LADDER = 4;
+        const TYPE_ROCK = 5;
+        const TYPE_PLANT = 6;
+        const TYPE_TREE = 7;
+        const TYPE_LEAF = 8;
+
+        // --- STATE MANAGEMENT ---
+        const state = {
+            isPlaying: false,
+            isRecording: false,
+            isDrawing: false,
+            frame: 0,
+            bpm: 120,
+            playbackSpeed: 1.0,
+            globalTime: 0,
+            mirrorMode: 0,
+            drawMode: 'SAND',
+            brushSize: 2,
+            brushVar: 0.5,
+            pulseMode: false,
+
+            // Input
+            mouseX: 160,
+            mouseY: 90,
+
+            // Objects
+            chargingBomb: false,
+            bombPower: 0,
+            bombs: [],
+            particles: [],
+            enemies: [],
+            portals: [], // {x, y, id, linkId}
+            pendingPortalLink: null, // Temp store for linking
+
+            // Audio Params
+            synth: { mix: 0.5, detune: 15, atk: 0.1, rel: 0.5, wobble: 0.3 },
+            fx: { glitch: 0, delay: 0.2, vol: 0.8 },
+
+            // Recording
+            loopStartTime: 0,
+            currentLoop: [],
+            loops: []
+        };
+
+        // --- PLAYER CONTROLLER ---
+        const player = {
+            active: false,
+            x: 160, y: 50,
+            w: 4, h: 7,
+            vx: 0, vy: 0,
+            speed: 1.5,
+            jumpPower: -3.0,
+            grounded: false,
+            onLadder: false,
+            facing: 1,
+            color: 0xFF00CCFF,
+            stepTimer: 0,
+            teleportCooldown: 0
+        };
+
+        // Key States
+        const keys = {
+            up: false, down: false, left: false, right: false,
+            digLeft: false, digRight: false, jump: false,
+            bomb: false
+        };
+
+        window.addEventListener('keydown', (e) => {
+            const k = e.key.toLowerCase();
+            if (k === "arrowup" || k === "w") keys.up = true;
+            if (k === "arrowdown" || k === "s") keys.down = true;
+            if (k === "arrowleft" || k === "a") keys.left = true;
+            if (k === "arrowright" || k === "d") keys.right = true;
+            if (k === " " || k === "arrowup" || k === "w") keys.jump = true;
+            if (k === "z" || k === "q") keys.digLeft = true;
+            if (k === "x" || k === "e") keys.digRight = true;
+            if (k === "tab") {
+                keys.bomb = true;
+                e.preventDefault();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            const k = e.key.toLowerCase();
+            if (k === "arrowup" || k === "w") keys.up = false;
+            if (k === "arrowdown" || k === "s") keys.down = false;
+            if (k === "arrowleft" || k === "a") keys.left = false;
+            if (k === "arrowright" || k === "d") keys.right = false;
+            if (k === " " || k === "arrowup" || k === "w") keys.jump = false;
+            if (k === "z" || k === "q") keys.digLeft = false;
+            if (k === "x" || k === "e") keys.digRight = false;
+            if (k === "tab") {
+                keys.bomb = false;
+                e.preventDefault();
+            }
+        });
+
+        // --- AUDIO ENGINE ---
+        const Audio = {
+            ctx: null,
+            master: null,
+            analyser: null,
+            delayNode: null,
+            fxInput: null,
+            dataArray: null,
+
+            init() {
+                const AC = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AC();
+                this.master = this.ctx.createGain();
+                this.analyser = this.ctx.createAnalyser();
+                this.analyser.fftSize = 256;
+                this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+                this.fxInput = this.ctx.createGain();
+                this.delayNode = this.ctx.createDelay();
+                this.delayNode.delayTime.value = 0.3;
+                const delayFeedback = this.ctx.createGain();
+                delayFeedback.gain.value = 0.4;
+                this.fxInput.connect(this.master);
+                this.fxInput.connect(this.delayNode);
+                this.delayNode.connect(delayFeedback);
+                delayFeedback.connect(this.delayNode);
+                this.delayNode.connect(this.master);
+                this.master.connect(this.analyser);
+                this.analyser.connect(this.ctx.destination);
+            },
+
+            getAnalysis() {
+                if (!this.analyser) return { bass: 0 };
+                this.analyser.getByteFrequencyData(this.dataArray);
+                let bass = 0;
+                for (let i = 0; i < 10; i++) bass += this.dataArray[i];
+                return { bass: bass / (10 * 255) };
+            },
+
+            updateParams() {
+                if (!this.ctx) return;
+                this.master.gain.setTargetAtTime(state.fx.vol, this.ctx.currentTime, 0.1);
+                this.delayNode.delayTime.setTargetAtTime(0.2 + (state.synth.wobble * 0.1), this.ctx.currentTime, 0.5);
+            },
+
+            // --- SFX & 8-BIT DRUMS ---
+            playTone(freq, type, dur, vol = 0.1) {
+                if (!this.ctx) return;
+                const t = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, t);
+                gain.gain.setValueAtTime(vol, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+                osc.connect(gain);
+                gain.connect(this.master);
+                osc.start(t);
+                osc.stop(t + dur);
+            },
+
+            // 8-Bit Drum Sequencer Logic
+            play8BitDrum(x, y) {
+                if (!this.ctx) return;
+                const yRatio = y / CANVAS_H;
+                const xRatio = x / CANVAS_W;
+                const now = this.ctx.currentTime;
+
+                // 1. Kick (Bottom of screen)
+                if (yRatio > 0.66) {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'square'; // 8-bit kick style
+                    osc.frequency.setValueAtTime(150 + (xRatio * 50), now);
+                    osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    gain.gain.setValueAtTime(0.5, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                    osc.connect(gain);
+                    gain.connect(this.master);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                }
+                // 2. Snare/Tom (Middle of screen)
+                else if (yRatio > 0.33) {
+                    // Noise burst
+                    const bufferSize = this.ctx.sampleRate * 0.1; // 0.1 sec
+                    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                    const data = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        data[i] = Math.random() * 2 - 1;
+                    }
+                    const noise = this.ctx.createBufferSource();
+                    noise.buffer = buffer;
+                    const noiseFilter = this.ctx.createBiquadFilter();
+                    noiseFilter.type = 'lowpass';
+                    noiseFilter.frequency.value = 1000 + (xRatio * 2000);
+                    const gain = this.ctx.createGain();
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+                    noise.connect(noiseFilter);
+                    noiseFilter.connect(gain);
+                    gain.connect(this.master);
+                    noise.start(now);
+
+                    // Add tonal component
+                    const osc = this.ctx.createOscillator();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(200 + (xRatio * 300), now);
+                    osc.frequency.exponentialRampToValueAtTime(50, now + 0.1);
+                    const oscGain = this.ctx.createGain();
+                    oscGain.gain.setValueAtTime(0.2, now);
+                    oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                    osc.connect(oscGain);
+                    oscGain.connect(this.master);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                }
+                // 3. Hi-Hat / Blip (Top of screen)
+                else {
+                    // High frequency noise/square
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(800 + (xRatio * 4000), now);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+                    // Highpass filter
+                    const filter = this.ctx.createBiquadFilter();
+                    filter.type = 'highpass';
+                    filter.frequency.value = 5000;
+
+                    osc.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(this.master);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                }
+            },
+
+            playFootstep() { this.playTone(600 + Math.random() * 200, 'square', 0.05, 0.05); },
+            playDig() { this.playTone(80, 'triangle', 0.15, 0.15); },
+            playCharge() { this.playTone(200 + (state.bombPower * 800), 'sawtooth', 0.1, 0.05); },
+            playThrow() { this.playTone(150, 'square', 0.2, 0.2); },
+            playExplode() {
+                if (!this.ctx) return;
+                const t = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(100, t);
+                osc.frequency.exponentialRampToValueAtTime(10, t + 0.5);
+                gain.gain.setValueAtTime(0.5, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+                osc.connect(gain);
+                gain.connect(this.master);
+                osc.start(t);
+                osc.stop(t + 0.5);
+            },
+            playTeleport() { this.playTone(800, 'sine', 0.3, 0.3); },
+            playHurt() { this.playTone(100, 'sawtooth', 0.3, 0.4); }
+        };
+
+        // --- SIMULATION ENGINE ---
+        const Sim = {
+            grid: new Uint8Array(CANVAS_W * CANVAS_H),
+            colorGrid: new Uint32Array(CANVAS_W * CANVAS_H),
+
+            init() { this.clear(); },
+            clear() {
+                this.grid.fill(0); this.colorGrid.fill(0xFF000000);
+                state.portals = [];
+                state.enemies = [];
+                state.bombs = [];
+                state.pendingPortalLink = null;
+            },
+
+            setPixel(x, y, type, color) {
+                if (x < 0 || x >= CANVAS_W || y < 0 || y >= CANVAS_H) return;
+                const idx = Math.floor(y) * CANVAS_W + Math.floor(x);
+                this.grid[idx] = type;
+                this.colorGrid[idx] = color;
+            },
+
+            removePixel(x, y) {
+                if (x < 0 || x >= CANVAS_W || y < 0 || y >= CANVAS_H) return;
+                const idx = Math.floor(y) * CANVAS_W + Math.floor(x);
+                this.grid[idx] = 0;
+                this.colorGrid[idx] = 0xFF000000;
+            },
+
+            getType(x, y) {
+                if (x < 0 || x >= CANVAS_W || y < 0 || y >= CANVAS_H) return TYPE_WALL;
+                return this.grid[Math.floor(y) * CANVAS_W + Math.floor(x)];
+            },
+
+            isSolid(x, y) { const t = this.getType(x, y); return t === TYPE_SAND || t === TYPE_WALL || t === TYPE_ROCK; },
+            isSand(x, y) { return this.getType(x, y) === TYPE_SAND; },
+            isLadder(x, y) { return this.getType(x, y) === TYPE_LADDER; },
+
+            update() {
+                const dir = Math.random() > 0.5 ? 1 : -1;
+                for (let y = CANVAS_H - 1; y >= 0; y--) {
+                    for (let x = 0; x < CANVAS_W; x++) {
+                        const idx = y * CANVAS_W + x;
+                        const type = this.grid[idx];
+
+                        if (type === TYPE_SAND) {
+                            const below = (y + 1) * CANVAS_W + x;
+                            const belowLeft = (y + 1) * CANVAS_W + (x - 1);
+                            const belowRight = (y + 1) * CANVAS_W + (x + 1);
+
+                            if (y < CANVAS_H - 1) {
+                                if (this.grid[below] === TYPE_EMPTY || this.grid[below] === TYPE_WATER) {
+                                    const belowType = this.grid[below]; const belowColor = this.colorGrid[below];
+                                    this.grid[below] = TYPE_SAND; this.colorGrid[below] = this.colorGrid[idx];
+                                    this.grid[idx] = belowType; this.colorGrid[idx] = belowColor;
+                                } else if (x > 0 && (this.grid[belowLeft] === TYPE_EMPTY || this.grid[belowLeft] === TYPE_WATER)) {
+                                    const belowType = this.grid[belowLeft]; const belowColor = this.colorGrid[belowLeft];
+                                    this.grid[belowLeft] = TYPE_SAND; this.colorGrid[belowLeft] = this.colorGrid[idx];
+                                    this.grid[idx] = belowType; this.colorGrid[idx] = belowColor;
+                                } else if (x < CANVAS_W - 1 && (this.grid[belowRight] === TYPE_EMPTY || this.grid[belowRight] === TYPE_WATER)) {
+                                    const belowType = this.grid[belowRight]; const belowColor = this.colorGrid[belowRight];
+                                    this.grid[belowRight] = TYPE_SAND; this.colorGrid[belowRight] = this.colorGrid[idx];
+                                    this.grid[idx] = belowType; this.colorGrid[idx] = belowColor;
+                                }
+                            }
+                        } else if (type === TYPE_WATER) {
+                            if (y < CANVAS_H - 1) {
+                                const below = (y + 1) * CANVAS_W + x;
+                                if (this.grid[below] === TYPE_EMPTY) {
+                                    this.grid[below] = TYPE_WATER; this.colorGrid[below] = this.colorGrid[idx];
+                                    this.grid[idx] = TYPE_EMPTY; this.colorGrid[idx] = 0xFF000000;
+                                } else if (this.grid[below] === TYPE_SAND) {
+                                    if (Math.random() < 0.05) {
+                                        this.grid[below] = TYPE_WATER;
+                                        this.grid[idx] = TYPE_EMPTY;
+                                    }
+                                } else {
+                                    const side = x + dir;
+                                    if (side >= 0 && side < CANVAS_W) {
+                                        const sIdx = y * CANVAS_W + side;
+                                        if (this.grid[sIdx] === TYPE_EMPTY) {
+                                            this.grid[sIdx] = TYPE_WATER; this.colorGrid[sIdx] = this.colorGrid[idx];
+                                            this.grid[idx] = TYPE_EMPTY; this.colorGrid[idx] = 0xFF000000;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+
+            render(ctx, imgData, audioData) {
+                const data = new Uint32Array(imgData.data.buffer);
+                // Dynamic Glitch/Pulse amount based on audio
+                const bass = audioData.bass;
+                const glitchAmt = state.fx.glitch * bass * 20;
+                const time = Date.now() * 0.005;
+
+                // Pulse Effect: Brighten color if pulse mode is on + bass hit
+                let pulseOffset = 0;
+                if (state.pulseMode && bass > 0.3) {
+                    pulseOffset = Math.floor(bass * 50);
+                }
+
+                for (let i = 0; i < data.length; i++) {
+                    if (this.grid[i] === 0) {
+                        data[i] = 0xFF000000;
+                    } else if (this.grid[i] === TYPE_PLANT || this.grid[i] === TYPE_TREE || this.grid[i] === TYPE_LEAF) {
+                        // Wind Sway: Render pixel shifted slightly based on row and time
+                        const y = Math.floor(i / CANVAS_W);
+                        let sway = 0;
+
+                        if (this.grid[i] === TYPE_PLANT) sway = Math.round(Math.sin(time + y * 0.2) * 1.5);
+                        if (this.grid[i] === TYPE_TREE) sway = Math.round(Math.sin(time * 0.5 + y * 0.05) * 0.5); // Stiff sway
+                        if (this.grid[i] === TYPE_LEAF) sway = Math.round(Math.sin(time * 2.0 + y * 0.1) * 2.0); // Flutter sway
+
+                        const newIdx = i + sway;
+                        if (newIdx >= 0 && newIdx < data.length) data[newIdx] = this.colorGrid[i];
+                    } else {
+                        // Apply Pulse/Glitch to terrain
+                        let col = this.colorGrid[i];
+
+                        if (state.pulseMode && pulseOffset > 0) {
+                            // Add brightness to R, G, B channels
+                            let r = (col & 0xFF) + pulseOffset;
+                            let g = ((col >> 8) & 0xFF) + pulseOffset;
+                            let b = ((col >> 16) & 0xFF) + pulseOffset;
+                            if (r > 255) r = 255;
+                            if (g > 255) g = 255;
+                            if (b > 255) b = 255;
+                            col = (0xFF000000 | (b << 16) | (g << 8) | r) >>> 0;
+                        }
+
+                        if (glitchAmt > 1.0 && Math.random() < 0.01) {
+                            const offset = Math.floor(Math.random() * glitchAmt * 10);
+                            if (i + offset < data.length) data[i + offset] = col;
+                        } else {
+                            data[i] = col;
+                        }
+                    }
+                }
+
+                // Draw Portals
+                state.portals.forEach(p => {
+                    const col = p.isEntrance ? 0xFFFF9900 : 0xFF0099FF;
+                    for (let dy = 0; dy < 10; dy++) {
+                        for (let dx = 0; dx < 6; dx++) {
+                            if (dx === 0 || dx === 5 || dy === 0) {
+                                const idx = (p.y + dy) * CANVAS_W + (p.x + dx);
+                                if (idx >= 0 && idx < data.length) data[idx] = col;
+                            } else {
+                                if (Math.random() > 0.5) {
+                                    const idx = (p.y + dy) * CANVAS_W + (p.x + dx);
+                                    if (idx >= 0 && idx < data.length) data[idx] = 0xFFFFFFFF;
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Draw Enemies
+                state.enemies.forEach(e => {
+                    const ex = Math.floor(e.x);
+                    const ey = Math.floor(e.y);
+                    for (let dy = 0; dy < 6; dy++) {
+                        for (let dx = 0; dx < 6; dx++) {
+                            const idx = (ey + dy) * CANVAS_W + (ex + dx);
+                            if (idx >= 0 && idx < data.length) data[idx] = 0xFF3333FF;
+                        }
+                    }
+                });
+
+                // Draw Bombs
+                state.bombs.forEach(b => {
+                    const bx = Math.floor(b.x);
+                    const by = Math.floor(b.y);
+                    if (bx >= 0 && bx < CANVAS_W && by >= 0 && by < CANVAS_H) {
+                        for (let dy = -2; dy <= 2; dy++) {
+                            for (let dx = -2; dx <= 2; dx++) {
+                                const pIdx = (by + dy) * CANVAS_W + (bx + dx);
+                                if (pIdx >= 0 && pIdx < data.length) data[pIdx] = 0xFFFFFFFF;
+                            }
+                        }
+                    }
+                });
+
+                // Draw Particles
+                state.particles.forEach(p => {
+                    const px = Math.floor(p.x);
+                    const py = Math.floor(p.y);
+                    if (px >= 0 && px < CANVAS_W && py >= 0 && py < CANVAS_H) {
+                        data[py * CANVAS_W + px] = p.color;
+                    }
+                });
+
+                // Draw Player
+                if (player.active) {
+                    const px = Math.floor(player.x);
+                    const py = Math.floor(player.y);
+                    const pc = player.color;
+
+                    for (let dy = 0; dy < player.h; dy++) {
+                        for (let dx = 0; dx < player.w; dx++) {
+                            const pIdx = (py + dy) * CANVAS_W + (px + dx);
+                            if (pIdx >= 0 && pIdx < data.length) data[pIdx] = pc;
+                        }
+                    }
+                    const eyeX = player.facing === 1 ? px + player.w - 1 : px;
+                    const eyeIdx = (py + 1) * CANVAS_W + eyeX;
+                    if (eyeIdx >= 0 && eyeIdx < data.length) data[eyeIdx] = 0xFF000000;
+                }
+            }
+        };
+
+        // --- ENTITY HELPERS ---
+        function spawnPortal(x, y) {
+            const id = Date.now() + Math.random();
+            const newPortal = { x: Math.floor(x), y: Math.floor(y), id: id, linkId: null, isEntrance: true };
+
+            if (state.pendingPortalLink) {
+                newPortal.linkId = state.pendingPortalLink.id;
+                newPortal.isEntrance = false;
+                state.pendingPortalLink.linkId = id;
+                state.portals.push(newPortal);
+                state.pendingPortalLink = null;
+            } else {
+                state.portals.push(newPortal);
+                state.pendingPortalLink = newPortal;
+            }
+        }
+
+        function spawnEnemy(x, y) {
+            state.enemies.push({
+                x: x, y: y, w: 6, h: 6,
+                vx: 0, vy: 0,
+                speed: 0.8,
+                grounded: false
+            });
+        }
+
+        function updateEnemies() {
+            for (let i = state.enemies.length - 1; i >= 0; i--) {
+                const e = state.enemies[i];
+
+                if (player.active) {
+                    if (player.x > e.x + 10) e.vx = e.speed;
+                    else if (player.x < e.x - 10) e.vx = -e.speed;
+                    else e.vx = 0;
+                }
+
+                if (!e.grounded) e.vy += 0.2;
+
+                if (!checkRectCollision(e.x + e.vx, e.y, e.w, e.h)) {
+                    e.x += e.vx;
+                } else {
+                    if (e.grounded && !checkRectCollision(e.x + e.vx, e.y - 10, e.w, e.h)) {
+                        e.vy = -3;
+                        e.grounded = false;
+                    } else {
+                        e.vx = 0;
+                    }
+                }
+
+                if (!checkRectCollision(e.x, e.y + e.vy, e.w, e.h)) {
+                    e.y += e.vy;
+                    e.grounded = false;
+                } else {
+                    if (e.vy > 0) { e.grounded = true; e.vy = 0; e.y = Math.floor(e.y); }
+                    else if (e.vy < 0) e.vy = 0;
+                }
+
+                if (e.y > CANVAS_H) { state.enemies.splice(i, 1); continue; }
+
+                if (player.active &&
+                    player.x < e.x + e.w && player.x + player.w > e.x &&
+                    player.y < e.y + e.h && player.y + player.h > e.y) {
+                    Audio.playHurt();
+                    player.vy = -4;
+                    player.vx = (player.x < e.x) ? -5 : 5;
+                }
+            }
+        }
+
+        // --- PHYSICS HELPERS ---
+        function checkRectCollision(x, y, w, h) {
+            for (let dy = 0; dy < h; dy++) {
+                for (let dx = 0; dx < w; dx++) {
+                    if (Sim.isSolid(x + dx, y + dy)) return true;
+                }
+            }
+            return false;
+        }
+
+        function checkLadderOverlap(x, y, w, h) {
+            const cx = Math.floor(x + w / 2);
+            const cy = Math.floor(y + h / 2);
+            return Sim.isLadder(cx, cy);
+        }
+
+        function digChunk(centerX, centerY, radius) {
+            let dug = false;
+            for (let dy = -radius; dy <= radius; dy++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+                    if (Sim.isSolid(centerX + dx, centerY + dy)) {
+                        Sim.removePixel(centerX + dx, centerY + dy);
+                        dug = true;
+                    }
+                }
+            }
+            if (dug) Audio.playDig();
+        }
+
+        // --- BOMB LOGIC ---
+        function updateBombs() {
+            if (keys.bomb && player.active) {
+                state.chargingBomb = true;
+                if (state.bombPower < 1.0) state.bombPower += 0.02;
+                if (Math.random() > 0.8) Audio.playCharge();
+            } else if (!keys.bomb && state.chargingBomb) {
+                throwBomb();
+                state.chargingBomb = false;
+                state.bombPower = 0;
+            }
+
+            for (let i = state.bombs.length - 1; i >= 0; i--) {
+                const b = state.bombs[i];
+                b.x += b.vx; b.y += b.vy; b.vy += 0.15;
+
+                if (Sim.isSolid(b.x, b.y) || b.y > CANVAS_H) {
+                    explode(b.x, b.y);
+                    state.bombs.splice(i, 1);
+                }
+            }
+
+            for (let i = state.particles.length - 1; i >= 0; i--) {
+                const p = state.particles[i];
+                p.x += p.vx; p.y += p.vy; p.life--;
+                if (p.life <= 0) state.particles.splice(i, 1);
+            }
+        }
+
+        function throwBomb() {
+            Audio.playThrow();
+            const dx = state.mouseX - player.x;
+            const dy = state.mouseY - player.y;
+            const len = Math.sqrt(dx * dx + dy * dy);
+            const speed = 2 + (state.bombPower * 10);
+            state.bombs.push({
+                x: player.x, y: player.y,
+                vx: (dx / len) * speed, vy: (dy / len) * speed
+            });
+        }
+
+        function explode(x, y) {
+            Audio.playExplode();
+            const radius = 12;
+            // Terrain
+            for (let dy = -radius; dy <= radius; dy++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+                    if (Math.sqrt(dx * dx + dy * dy) < radius) Sim.removePixel(x + dx, y + dy);
+                }
+            }
+            // Enemy Damage
+            for (let i = state.enemies.length - 1; i >= 0; i--) {
+                const e = state.enemies[i];
+                const dist = Math.sqrt((e.x - x) ** 2 + (e.y - y) ** 2);
+                if (dist < radius + 10) {
+                    state.enemies.splice(i, 1);
+                }
+            }
+            // Particles
+            for (let i = 0; i < 30; i++) {
+                state.particles.push({
+                    x: x, y: y,
+                    vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4,
+                    life: 30 + Math.random() * 20,
+                    color: Math.random() > 0.5 ? 0xFF0000FF : 0xFF00FFFF
+                });
+            }
+        }
+
+        // --- PLAYER UPDATE ---
+        function updatePlayer() {
+            player.onLadder = checkLadderOverlap(player.x, player.y, player.w, player.h);
+            player.vx *= 0.8;
+
+            if (player.teleportCooldown > 0) player.teleportCooldown--;
+
+            let dx = 0;
+            if (keys.left) { dx = -player.speed; player.facing = -1; }
+            if (keys.right) { dx = player.speed; player.facing = 1; }
+
+            if (dx !== 0) {
+                if (checkRectCollision(player.x + dx, player.y, player.w, player.h)) {
+                    if (!checkRectCollision(player.x + dx, player.y - 2, player.w, player.h)) {
+                        player.x += dx; player.y -= 2;
+                    } else {
+                        const frontX = dx > 0 ? player.x + player.w : player.x - 1;
+                        const centerY = player.y + (player.h / 2);
+                        if (Sim.isSand(frontX, centerY)) {
+                            digChunk(frontX, centerY, 2); player.x += dx * 0.5;
+                        } else {
+                            player.vx = 0;
+                        }
+                    }
+                } else {
+                    player.x += dx;
+                }
+                if (player.grounded) {
+                    player.stepTimer++;
+                    if (player.stepTimer > 10) { Audio.playFootstep(); player.stepTimer = 0; }
+                }
+            } else {
+                player.stepTimer = 10;
+            }
+
+            if (player.onLadder) {
+                player.vy = 0; player.grounded = true;
+                if (keys.up) player.y -= 1;
+                if (keys.down) player.y += 1;
+                if (keys.jump) { player.vy = player.jumpPower; player.onLadder = false; }
+            } else {
+                if (!player.grounded) player.vy += 0.2;
+                if (keys.jump && player.grounded) { player.vy = player.jumpPower; player.grounded = false; }
+                if (!checkRectCollision(player.x, player.y + player.vy, player.w, player.h)) {
+                    player.y += player.vy; player.grounded = false;
+                } else {
+                    if (player.vy > 0) { player.grounded = true; player.vy = 0; player.y = Math.floor(player.y); }
+                    else if (player.vy < 0) { player.vy = 0; }
+                }
+            }
+
+            if (keys.digLeft) digChunk(player.x - 4, player.y + player.h, 2);
+            if (keys.digRight) digChunk(player.x + player.w + 1, player.y + player.h, 2);
+            if (keys.down && !player.onLadder) digChunk(player.x + (player.w / 2), player.y + player.h + 1, 2);
+
+            if (player.y > CANVAS_H) { player.y = 0; player.vy = 0; }
+            if (player.x < 0) player.x = CANVAS_W - player.w;
+            if (player.x > CANVAS_W) player.x = 0;
+
+            if (player.teleportCooldown === 0) {
+                state.portals.forEach(p => {
+                    if (p.linkId &&
+                        player.x < p.x + 6 && player.x + player.w > p.x &&
+                        player.y < p.y + 10 && player.y + player.h > p.y) {
+
+                        const target = state.portals.find(t => t.id === p.linkId);
+                        if (target) {
+                            Audio.playTeleport();
+                            player.x = target.x;
+                            player.y = target.y;
+                            player.teleportCooldown = 60;
+                            for (let i = 0; i < 10; i++) state.particles.push({ x: target.x, y: target.y, vx: (Math.random() - 0.5) * 2, vy: (Math.random() - 0.5) * 2, life: 20, color: 0xFFFFFFFF });
+                        }
+                    }
+                });
+            }
+        }
+
+        // --- MAIN ---
+        const canvas = document.getElementById('pixelCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        canvas.width = CANVAS_W; canvas.height = CANVAS_H;
+        const imgData = ctx.createImageData(CANVAS_W, CANVAS_H);
+
+        const helperText = document.getElementById('helper-text');
+        let activeVoice = null;
+
+        function hsvToAbgr(h, s, v) {
+            let r, g, b, i, f, p, q, t;
+            i = Math.floor(h * 6); f = h * 6 - i;
+            p = v * (1 - s); q = v * (1 - f * s); t = v * (1 - (1 - f) * s);
+            switch (i % 6) {
+                case 0: r = v; g = t; b = p; break;
+                case 1: r = q; g = v; b = p; break;
+                case 2: r = p; g = v; b = t; break;
+                case 3: r = p; g = q; b = v; break;
+                case 4: r = t; g = p; b = v; break;
+                case 5: r = v; g = p; b = q; break;
+            }
+            return (0xFF000000 | (Math.round(b * 255) << 16) | (Math.round(g * 255) << 8) | Math.round(r * 255)) >>> 0;
+        }
+
+        function getFreqFromX(x) {
+            const scales = [130.81, 146.83, 164.81, 196.00, 220.00, 261.63, 293.66, 329.63, 392.00, 440.00, 523.25];
+            return scales[Math.min(Math.floor((x / CANVAS_W) * scales.length), scales.length - 1)];
+        }
+
+        // Centralized Paint Logic for Input + Loop Playback
+        function paintStroke(x, y, mode, size, timeHue) {
+            const h = timeHue;
+            let color = hsvToAbgr(h, 0.8, 1.0);
+
+            if (mode === 'WATER') color = 0xFFFF8800; // Blue
+            if (mode === 'PLANT') color = 0xFF00FF00; // Green
+
+            if (mode === 'TREE') color = 0xFF214365; // Brown (ABGR)
+            if (mode === 'LEAF') {
+                // Varied green/yellow
+                const v = Math.random() * 0.2;
+                color = (0xFF000000 | (0x22 << 16) | (Math.floor((0x8B + v * 50)) << 8) | 0x22) >>> 0;
+            }
+
+            if (mode === 'ROCK') {
+                const baseVal = 100 + Math.random() * 50;
+                if (Math.random() < state.brushVar) {
+                    color = hsvToAbgr(h, 0.2, 0.6);
+                } else {
+                    color = (0xFF000000 | (baseVal << 16) | (baseVal << 8) | baseVal) >>> 0;
+                }
+            }
+
+            if (mode === 'LADDER') color = 0xFF004488;
+
+            // Apply Brush Shape
+            for (let dx = -size; dx <= size; dx++) {
+                for (let dy = -size; dy <= size; dy++) {
+                    const worldX = x + dx;
+                    const worldY = y + dy;
+
+                    if (mode === 'SAND' && Math.random() > 0.5) continue;
+
+                    if (mode === 'LADDER') {
+                        const isRail = dx === -size || dx === size;
+                        const isRung = (worldY % 4 === 0) && (dx > -size && dx < size);
+                        if (isRail || isRung) {
+                            applyBrush(worldX, worldY, mode, color);
+                        } else {
+                            applyBrush(worldX, worldY, mode, 0x00000000); // Clear background
+                        }
+                        continue;
+                    }
+                    if (mode === 'PLANT' || mode === 'LEAF') {
+                        if (Math.random() > 0.8) applyBrush(worldX, worldY, mode, color);
+                        continue;
+                    }
+
+                    applyBrush(worldX, worldY, mode, color);
+                }
+            }
+        }
+
+        function applyBrush(x, y, mode, color) {
+            if (mode === 'ERASE') {
+                Sim.removePixel(x, y);
+                if (state.mirrorMode) applyMirror(x, y, mode);
+            } else if (mode === 'PLANT') {
+                Sim.setPixel(x, y, TYPE_PLANT, 0xFF00FF00);
+                if (state.mirrorMode) applyMirror(x, y, mode, TYPE_PLANT, 0xFF00FF00);
+            } else if (mode === 'TREE') {
+                // Trees are mostly decoration (solid or non-solid? Let's make them non-solid like plants for now, purely visual)
+                // But usually trunks are solid. Let's make TYPE_TREE act as solid but visually distinct.
+                Sim.setPixel(x, y, TYPE_TREE, color);
+                if (state.mirrorMode) applyMirror(x, y, mode, TYPE_TREE, color);
+            } else if (mode === 'LEAF') {
+                Sim.setPixel(x, y, TYPE_LEAF, color);
+                if (state.mirrorMode) applyMirror(x, y, mode, TYPE_LEAF, color);
+            } else if (mode === 'PORTAL' || mode === 'ENEMY') {
+                // These are point-clicks, not strokes
+            } else {
+                let type = TYPE_SAND;
+                if (mode === 'LINE') type = TYPE_WALL;
+                if (mode === 'WATER') type = TYPE_WATER;
+                if (mode === 'LADDER') type = TYPE_LADDER;
+                if (mode === 'ROCK') type = TYPE_ROCK;
+
+                Sim.setPixel(x, y, type, color);
+                if (state.mirrorMode) applyMirror(x, y, mode, type, color);
+            }
+        }
+
+        function applyMirror(x, y, mode, type, color) {
+            const mx = CANVAS_W - x; const my = CANVAS_H - y;
+            if (state.mirrorMode === 1 || state.mirrorMode === 3) mode === 'ERASE' ? Sim.removePixel(mx, y) : Sim.setPixel(mx, y, type, color);
+            if (state.mirrorMode === 2 || state.mirrorMode === 3) mode === 'ERASE' ? Sim.removePixel(x, my) : Sim.setPixel(x, my, type, color);
+            if (state.mirrorMode === 3) mode === 'ERASE' ? Sim.removePixel(mx, my) : Sim.setPixel(mx, my, type, color);
+        }
+
+        function handleInputStart(x, y) {
+            if (!state.isPlaying || state.drawMode === 'RUNNER') return;
+            state.isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            state.mouseX = Math.floor((x - rect.left) / rect.width * CANVAS_W);
+            state.mouseY = Math.floor((y - rect.top) / rect.height * CANVAS_H);
+
+            // Single Click Tools
+            if (state.drawMode === 'PORTAL') { spawnPortal(state.mouseX, state.mouseY); return; }
+            if (state.drawMode === 'ENEMY') { spawnEnemy(state.mouseX, state.mouseY); return; }
+
+            if (state.drawMode !== 'ERASE') {
+                Audio.play8BitDrum(state.mouseX, state.mouseY);
+                if (state.isRecording) {
+                    state.currentLoop.push({
+                        type: 'NOTE_ON',
+                        time: Date.now() - state.loopStartTime,
+                        x: state.mouseX,
+                        y: state.mouseY,
+                        mode: state.drawMode, // Save Mode
+                        size: parseInt(state.brushSize) // Save Size
+                    });
+                }
+            }
+        }
+
+        function handleInputMove(x, y) {
+            if (!state.isPlaying) return;
+            const rect = canvas.getBoundingClientRect();
+            state.mouseX = Math.floor((x - rect.left) / rect.width * CANVAS_W);
+            state.mouseY = Math.floor((y - rect.top) / rect.height * CANVAS_H);
+
+            if (!state.isDrawing) return;
+            if (state.drawMode === 'PORTAL' || state.drawMode === 'ENEMY') return;
+
+            if (state.isRecording) {
+                state.currentLoop.push({
+                    type: 'MOVE',
+                    time: Date.now() - state.loopStartTime,
+                    x: state.mouseX,
+                    y: state.mouseY,
+                    mode: state.drawMode,
+                    size: parseInt(state.brushSize)
+                });
+            }
+        }
+
+        function handleInputEnd() {
+            state.isDrawing = false;
+            if (state.isRecording && state.drawMode !== 'ERASE' && state.drawMode !== 'PORTAL' && state.drawMode !== 'ENEMY') state.currentLoop.push({ type: 'NOTE_OFF', time: Date.now() - state.loopStartTime });
+        }
+
+        function loop() {
+            requestAnimationFrame(loop);
+            const now = Date.now();
+            const audioData = Audio.getAnalysis();
+            Audio.updateParams();
+
+            Sim.update();
+            if (player.active) {
+                updatePlayer();
+                updateBombs();
+                updateEnemies();
+            }
+
+            // Live Drawing
+            if (state.isDrawing && state.drawMode !== 'PORTAL' && state.drawMode !== 'ENEMY') {
+                const h = (now * 0.001) % 1;
+                const size = parseInt(state.brushSize) + Math.floor(audioData.bass * 5);
+                paintStroke(state.mouseX, state.mouseY, state.drawMode, size, h);
+            }
+
+            // Loop Playback
+            state.globalTime += (1000 / 60) * state.playbackSpeed;
+            state.loops.forEach(l => {
+                const lt = state.globalTime % l.duration;
+                l.events.filter(e => Math.abs(e.time - lt) < 20).forEach(e => {
+                    if (e.type === 'NOTE_ON') Audio.play8BitDrum(e.x, e.y);
+
+                    if (e.type === 'NOTE_ON' || e.type === 'MOVE') {
+                        // Use recorded size/mode, fallback if missing
+                        const size = (e.size || 2) + Math.floor(audioData.bass * 5);
+                        const mode = e.mode || 'SAND';
+                        const h = (lt * 0.001) % 1;
+                        paintStroke(e.x, e.y, mode, size, h);
+                    }
+                });
+            });
+
+            Sim.render(ctx, imgData, audioData);
+
+            // Draw Aim
+            if (state.chargingBomb && player.active) {
+                const dx = state.mouseX - player.x;
+                const dy = state.mouseY - player.y;
+                const len = Math.sqrt(dx * dx + dy * dy);
+                const speed = 2 + (state.bombPower * 10);
+                let simX = player.x; let simY = player.y;
+                let simVx = (dx / len) * speed; let simVy = (dy / len) * speed;
+
+                for (let i = 0; i < 15; i++) {
+                    simX += simVx; simY += simVy; simVy += 0.15;
+                    const sx = Math.floor(simX); const sy = Math.floor(simY);
+                    if (sx >= 0 && sx < CANVAS_W && sy >= 0 && sy < CANVAS_H) {
+                        const idx = (sy * CANVAS_W + sx) * 4;
+                        imgData.data[idx] = 255; imgData.data[idx + 1] = 0; imgData.data[idx + 2] = 0; imgData.data[idx + 3] = 255;
+                    }
+                }
+            }
+
+            ctx.putImageData(imgData, 0, 0);
+        }
+
+        document.getElementById('start-btn').addEventListener('click', () => { Audio.init(); Sim.init(); state.isPlaying = true; document.getElementById('overlay').style.display = 'none'; loop(); });
+        const container = document.getElementById('game-container');
+        container.addEventListener('mousedown', e => { if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT') handleInputStart(e.clientX, e.clientY); });
+        window.addEventListener('mousemove', e => handleInputMove(e.clientX, e.clientY));
+        window.addEventListener('mouseup', handleInputEnd);
+
+        // UI Binding
+        const modes = ['sand', 'draw', 'water', 'ladder', 'rock', 'plant', 'tree', 'leaf', 'erase', 'runner', 'portal', 'enemy'];
+        modes.forEach(m => {
+            const btn = document.getElementById('btn-mode-' + m);
+            btn.addEventListener('click', () => {
+                state.drawMode = m.toUpperCase();
+                if (m === 'draw') state.drawMode = 'LINE';
+                modes.forEach(om => document.getElementById('btn-mode-' + om).classList.remove('active'));
+                btn.classList.add('active');
+                btn.blur();
+
+                if (m === 'runner') {
+                    player.active = true;
+                    if (state.mouseX > 0) { player.x = state.mouseX; player.y = state.mouseY; player.vx = 0; player.vy = 0; }
+                    document.getElementById('helper-text').style.opacity = 1;
+                } else {
+                    player.active = false;
+                    document.getElementById('helper-text').style.opacity = 0;
+                }
+            });
+        });
+
+        document.getElementById('btn-stop').addEventListener('click', () => { state.loops = []; Sim.clear(); });
+        document.getElementById('btn-clear').addEventListener('click', () => { Sim.clear(); });
+
+        const btnPulse = document.getElementById('btn-pulse');
+        btnPulse.addEventListener('click', () => {
+            state.pulseMode = !state.pulseMode;
+            btnPulse.classList.toggle('active');
+            btnPulse.innerText = state.pulseMode ? "PULSE: ON" : "PULSE: OFF";
+            btnPulse.blur();
+        });
+
+        document.getElementById('btn-rec').addEventListener('click', function () {
+            state.isRecording = !state.isRecording;
+            this.classList.toggle('active');
+            this.innerText = state.isRecording ? "STOP REC" : "REC LOOP";
+            if (state.isRecording) { state.currentLoop = []; state.loopStartTime = 0; }
+            else if (state.currentLoop.length > 0) state.loops.push({ duration: Date.now() - state.loopStartTime, events: state.currentLoop });
+        });
+        document.getElementById('btn-mirror').addEventListener('click', function () {
+            state.mirrorMode = (state.mirrorMode + 1) % 4;
+            this.innerText = "MIR: " + ["OFF", "HORZ", "VERT", "QUAD"][state.mirrorMode];
+        });
+        document.getElementById('brush-size').addEventListener('input', e => state.brushSize = e.target.value);
+        document.getElementById('brush-var').addEventListener('input', e => state.brushVar = parseFloat(e.target.value));
+        document.getElementById('bpm-slider').addEventListener('input', e => state.playbackSpeed = parseFloat(e.target.value));
+
+        ['mix', 'detune', 'atk', 'rel', 'wobble'].forEach(k => document.getElementById('p-' + k).addEventListener('input', e => state.synth[k] = parseFloat(e.target.value)));
+        ['glitch', 'vol', 'delay', 'speed'].forEach(k => document.getElementById('p-' + k).addEventListener('input', e => k === 'speed' ? state.playbackSpeed = parseFloat(e.target.value) : state.fx[k] = parseFloat(e.target.value)));
+
+    </script>
+</body>
+
+</html>
