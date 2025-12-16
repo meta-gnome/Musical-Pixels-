@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pixel Synth Worm Art App</title>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #050505;
+            overflow: hidden;
+            font-family: 'Courier New', Courier, monospace;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #0f0;
+            text-align: center;
+            z-index: 20;
+            transition: opacity 0.5s ease;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 0px #000;
+            color: #fff;
+        }
+
+        p {
+            font-size: 1rem;
+            max-width: 80%;
+            line-height: 1.5;
+            color: #ccc;
+        }
+
+        .blink {
+            animation: blinker 1s linear infinite;
+            color: #0f0;
+            margin-top: 20px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            border: 2px solid #0f0;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+        @keyframes blinker {
+            50% {
+                opacity: 0;
+            }
+        }
+
+        /* UI Structure */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        #top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: auto;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: #333;
+            color: white;
+            border: 2px solid #fff;
+            padding: 6px 10px;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 3px 3px 0px #000;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0px #000;
+        }
+
+        #clear-btn {
+            background: #f00;
+        }
+
+        #mirror-btn {
+            background: #333;
+        }
+
+        #seq-btn {
+            background: #333;
+            color: #aaa;
+        }
+
+        #seq-btn.recording {
+            background: #f00;
+            color: #fff;
+            animation: pulse-red 1s infinite;
+        }
+
+        .transport-group {
+            display: flex;
+            gap: 5px;
+            background: rgba(50, 50, 50, 0.8);
+            padding: 4px;
+            border: 1px solid #555;
+            border-radius: 4px;
+        }
+
+        .t-btn {
+            min-width: 30px;
+            font-size: 1rem;
+            padding: 2px 6px;
+        }
+
+        .t-btn.active {
+            background: #0f0;
+            color: #000;
+            box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        @keyframes pulse-red {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(255, 0, 0, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 0, 0, 0);
+            }
+        }
+
+        #hud {
+            text-align: right;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px;
+            margin-left: auto;
+            white-space: nowrap;
+        }
+
+        /* Bottom Controls Container */
+        #controls-container {
+            pointer-events: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #333;
+            padding: 8px;
+        }
+
+        .control-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            border-bottom: 1px solid #222;
+            padding-bottom: 5px;
+        }
+
+        .control-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .row-label {
+            width: 100%;
+            color: #0f0;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            text-align: center;
+            letter-spacing: 2px;
+            margin-bottom: 2px;
+        }
+
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 60px;
+        }
+
+        .slider-group label {
+            color: #aaa;
+            font-size: 9px;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 80px;
+            height: 4px;
+            background: #333;
+            outline: none;
+            margin: 5px 0;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            background: #0f0;
+            cursor: pointer;
+            border: 1px solid #000;
+        }
+
+        /* Color coding for sections */
+        .sec-synth input[type=range]::-webkit-slider-thumb {
+            background: #0ff;
+        }
+
+        .sec-fx input[type=range]::-webkit-slider-thumb {
+            background: #f0f;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="game-container">
+        <canvas id="pixelCanvas"></canvas>
+
+        <div id="ui-layer">
+            <!-- Top Bar -->
+            <div id="top-bar">
+                <div class="transport-group">
+                    <button id="btn-play" class="btn t-btn active" title="Play">►</button>
+                    <button id="btn-pause" class="btn t-btn" title="Pause">⏸</button>
+                    <button id="btn-stop" class="btn t-btn" title="Stop">■</button>
+                </div>
+                <button id="seq-btn" class="btn">SEQ: OFF</button>
+                <button id="clear-btn" class="btn">Clear</button>
+                <button id="mirror-btn" class="btn">Mirror: OFF</button>
+                <div id="hud">
+                    FREQ: <span id="debug-freq">0</span> Hz<br>
+                    TIME: <span id="debug-time">0.0</span>s
+                </div>
+            </div>
+
+            <!-- Bottom Controls -->
+            <div id="controls-container">
+
+                <!-- Synth Design Row -->
+                <div class="row-label" style="color:#0ff;">Synth Design</div>
+                <div class="control-row sec-synth">
+                    <div class="slider-group">
+                        <label>Osc Mix (Saw/Sqr)</label>
+                        <input type="range" id="sl-osc-mix" min="0" max="1" step="0.01" value="0.5">
+                    </div>
+                    <div class="slider-group">
+                        <label>Detune</label>
+                        <input type="range" id="sl-detune" min="0" max="50" step="1" value="10">
+                    </div>
+                    <div class="slider-group">
+                        <label>Sub Vol</label>
+                        <input type="range" id="sl-sub" min="0" max="1" step="0.01" value="0.5">
+                    </div>
+                    <div class="slider-group">
+                        <label>Attack</label>
+                        <input type="range" id="sl-atk" min="0.01" max="1.0" step="0.01" value="0.05">
+                    </div>
+                    <div class="slider-group">
+                        <label>Release</label>
+                        <input type="range" id="sl-rel" min="0.1" max="2.0" step="0.05" value="0.5">
+                    </div>
+                    <div class="slider-group">
+                        <label>Wobble</label>
+                        <input type="range" id="sl-lfo" min="0" max="1" step="0.01" value="0.5">
+                    </div>
+                    <div class="slider-group">
+                        <label>Res (Q)</label>
+                        <input type="range" id="sl-res" min="0" max="20" step="1" value="5">
+                    </div>
+                </div>
+
+                <!-- FX Row -->
+                <div class="row-label" style="color:#f0f;">Master FX & Mix</div>
+                <div class="control-row sec-fx">
+                    <div class="slider-group">
+                        <label>Comb Delay</label>
+                        <input type="range" id="sl-comb" min="0" max="1" step="0.01" value="0">
+                    </div>
+                    <div class="slider-group">
+                        <label>Grain / Glitch</label>
+                        <input type="range" id="sl-grain" min="0" max="1" step="0.01" value="0">
+                    </div>
+                    <div class="slider-group">
+                        <label>Phaser</label>
+                        <input type="range" id="sl-phaser" min="0" max="1" step="0.01" value="0">
+                    </div>
+                    <div class="slider-group">
+                        <label>BPM / Speed</label>
+                        <input type="range" id="sl-speed" min="0.5" max="2.0" step="0.1" value="1.0">
+                    </div>
+                    <div class="slider-group">
+                        <label>Master Vol</label>
+                        <input type="range" id="sl-vol" min="0" max="1" step="0.01" value="0.8">
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div id="overlay">
+            <h1>PIXEL SYNTH LOOPER</h1>
+            <p>DESIGN. RECORD. PERFORM.</p>
+            <p style="font-size: 0.8rem; color: #888;">
+                New: Use the Cyan knobs to design your sound.<br>
+                Use the Magenta knobs for FX.<br>
+                X = Pitch | Y = Filter
+            </p>
+            <div class="blink" id="start-btn">START ENGINE</div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * GLOBAL CONFIG STATE
+         * Stores the current positions of the UI sliders
+         */
+        const synthConfig = {
+            oscMix: 0.5,    // 0 = Saw, 1 = Square
+            detune: 10,     // Cents
+            subVol: 0.5,
+            attack: 0.05,
+            release: 0.5,
+            wobble: 0.5,    // LFO intensity factor
+            res: 5
+        };
+
+        /**
+         * SYNTH VOICE
+         * Flexible voice that reads from synthConfig
+         */
+        class SynthVoice {
+            constructor(ctx, outputNode) {
+                this.ctx = ctx;
+                this.output = outputNode;
+
+                // Voice Graph
+                this.filter = this.ctx.createBiquadFilter();
+                this.filter.type = 'lowpass';
+                this.filter.Q.value = synthConfig.res;
+
+                this.amp = this.ctx.createGain();
+                this.amp.gain.value = 0;
+
+                this.filter.connect(this.amp);
+                this.amp.connect(this.output);
+
+                // --- Oscillators & Mixing ---
+
+                // Osc 1 (Saw)
+                this.osc1 = this.ctx.createOscillator();
+                this.osc1.type = 'sawtooth';
+                this.osc1Gain = this.ctx.createGain();
+                this.osc1.connect(this.osc1Gain);
+                this.osc1Gain.connect(this.filter);
+
+                // Osc 2 (Square)
+                this.osc2 = this.ctx.createOscillator();
+                this.osc2.type = 'square';
+                this.osc2.detune.value = synthConfig.detune;
+                this.osc2Gain = this.ctx.createGain();
+                this.osc2.connect(this.osc2Gain);
+                this.osc2Gain.connect(this.filter);
+
+                // Sub Osc
+                this.subOsc = this.ctx.createOscillator();
+                this.subOsc.type = 'triangle';
+                this.subGain = this.ctx.createGain();
+                this.subGain.gain.value = synthConfig.subVol;
+                this.subOsc.connect(this.subGain);
+                this.subGain.connect(this.filter);
+
+                // LFO
+                this.lfo = this.ctx.createOscillator();
+                this.lfo.type = 'sine';
+                this.lfo.frequency.value = 5;
+                this.lfoGain = this.ctx.createGain();
+                this.lfoGain.gain.value = 0;
+                this.lfo.connect(this.lfoGain);
+                this.lfoGain.connect(this.filter.frequency);
+
+                // Start
+                this.osc1.start();
+                this.osc2.start();
+                this.subOsc.start();
+                this.lfo.start();
+
+                // Apply initial mix
+                this.updateMix();
+            }
+
+            updateMix() {
+                // Crossfade Osc1 and Osc2
+                // Saw (Osc1) = 1 - mix
+                // Sqr (Osc2) = mix
+                const mix = synthConfig.oscMix;
+                this.osc1Gain.gain.setTargetAtTime(1.0 - mix, this.ctx.currentTime, 0.05);
+                this.osc2Gain.gain.setTargetAtTime(mix, this.ctx.currentTime, 0.05);
+
+                this.osc2.detune.setTargetAtTime(synthConfig.detune, this.ctx.currentTime, 0.05);
+                this.subGain.gain.setTargetAtTime(synthConfig.subVol, this.ctx.currentTime, 0.05);
+                this.filter.Q.setTargetAtTime(synthConfig.res, this.ctx.currentTime, 0.05);
+            }
+
+            triggerAttack() {
+                const now = this.ctx.currentTime;
+                this.amp.gain.cancelScheduledValues(now);
+                this.amp.gain.setValueAtTime(this.amp.gain.value, now);
+                // Use configured attack time
+                this.amp.gain.linearRampToValueAtTime(0.4, now + Math.max(0.01, synthConfig.attack));
+            }
+
+            triggerRelease() {
+                const now = this.ctx.currentTime;
+                this.amp.gain.cancelScheduledValues(now);
+                this.amp.gain.setValueAtTime(this.amp.gain.value, now);
+                // Use configured release time
+                this.amp.gain.exponentialRampToValueAtTime(0.001, now + Math.max(0.05, synthConfig.release));
+            }
+
+            silence() {
+                const now = this.ctx.currentTime;
+                this.amp.gain.cancelScheduledValues(now);
+                this.amp.gain.setTargetAtTime(0, now, 0.05);
+            }
+
+            update(freq, yRatio, energy) {
+                const now = this.ctx.currentTime;
+
+                // Pitch
+                this.osc1.frequency.setTargetAtTime(freq, now, 0.02);
+                this.osc2.frequency.setTargetAtTime(freq, now, 0.02);
+                this.subOsc.frequency.setTargetAtTime(freq / 2, now, 0.02);
+
+                // Filter
+                const baseCutoff = 100 + (yRatio * 5000);
+                const energyBoost = energy * 3000;
+                this.filter.frequency.setTargetAtTime(baseCutoff + energyBoost, now, 0.05);
+
+                // LFO Wobble (Scaled by Wobble Slider AND Energy)
+                const wobbleAmt = synthConfig.wobble * 1000 * energy;
+                this.lfoGain.gain.setTargetAtTime(wobbleAmt, now, 0.1);
+
+                // LFO Speed (Faster with energy, scaled by Wobble slider base)
+                const wobbleSpeed = 2 + (synthConfig.wobble * 20 * energy);
+                this.lfo.frequency.setTargetAtTime(wobbleSpeed, now, 0.1);
+            }
+
+            destroy() {
+                this.osc1.stop();
+                this.osc2.stop();
+                this.subOsc.stop();
+                this.lfo.stop();
+                this.amp.disconnect();
+            }
+        }
+
+        /**
+         * AUDIO ENGINE
+         */
+        class AudioEngine {
+            constructor() {
+                this.ctx = null;
+                this.masterOut = null;
+                this.fxInput = null;
+
+                // FX Nodes
+                this.combGain = null;
+                this.combDelay = null;
+                this.phaserGain = null;
+                this.grainGain = null;
+                this.grainDelay = null;
+            }
+
+            init() {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AudioContext();
+
+                this.masterOut = this.ctx.createGain();
+                this.masterOut.gain.value = 0.8;
+                this.masterOut.connect(this.ctx.destination);
+
+                this.fxInput = this.ctx.createGain();
+                this.fxInput.gain.value = 1.0;
+                this.fxInput.connect(this.masterOut);
+
+                this.setupCombDelay();
+                this.setupPhaser();
+                this.setupGrainDelay();
+            }
+
+            setupCombDelay() {
+                this.combDelay = this.ctx.createDelay();
+                this.combDelay.delayTime.value = 0.03;
+                const feedback = this.ctx.createGain();
+                feedback.gain.value = 0.9;
+
+                this.combDelay.connect(feedback);
+                feedback.connect(this.combDelay);
+
+                this.combGain = this.ctx.createGain();
+                this.combGain.gain.value = 0;
+
+                this.fxInput.connect(this.combGain);
+                this.combGain.connect(this.combDelay);
+                this.combDelay.connect(this.masterOut);
+            }
+
+            setupPhaser() {
+                this.phaserGain = this.ctx.createGain();
+                this.phaserGain.gain.value = 0;
+
+                let lastNode = this.phaserGain;
+                const phaserLFOGain = this.ctx.createGain();
+                phaserLFOGain.gain.value = 800;
+
+                const lfo = this.ctx.createOscillator();
+                lfo.frequency.value = 0.5;
+                lfo.start();
+                lfo.connect(phaserLFOGain);
+
+                for (let i = 0; i < 4; i++) {
+                    let ap = this.ctx.createBiquadFilter();
+                    ap.type = 'allpass';
+                    ap.frequency.value = 1000;
+                    lastNode.connect(ap);
+                    phaserLFOGain.connect(ap.frequency);
+                    lastNode = ap;
+                }
+                lastNode.connect(this.masterOut);
+                this.fxInput.connect(this.phaserGain);
+            }
+
+            setupGrainDelay() {
+                this.grainDelay = this.ctx.createDelay();
+                this.grainDelay.delayTime.value = 0.05;
+
+                this.grainGain = this.ctx.createGain();
+                this.grainGain.gain.value = 0;
+
+                const lfo = this.ctx.createOscillator();
+                lfo.type = 'sawtooth';
+                lfo.frequency.value = 15;
+                lfo.start();
+
+                const mod = this.ctx.createGain();
+                mod.gain.value = 0.02;
+                lfo.connect(mod);
+                mod.connect(this.grainDelay.delayTime);
+
+                this.fxInput.connect(this.grainGain);
+                this.grainGain.connect(this.grainDelay);
+                this.grainDelay.connect(this.masterOut);
+            }
+
+            createVoice() {
+                return new SynthVoice(this.ctx, this.fxInput);
+            }
+
+            resume() {
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            setFX(combAmt, grainAmt, phaserAmt, masterVol) {
+                if (!this.ctx) return;
+                this.combGain.gain.setTargetAtTime(combAmt * 0.8, this.ctx.currentTime, 0.1);
+                this.grainGain.gain.setTargetAtTime(grainAmt * 0.8, this.ctx.currentTime, 0.1);
+                this.phaserGain.gain.setTargetAtTime(phaserAmt * 0.8, this.ctx.currentTime, 0.1);
+                this.masterOut.gain.setTargetAtTime(masterVol, this.ctx.currentTime, 0.1);
+            }
+        }
+
+        /**
+         * VISUAL WORM
+         */
+        class Worm {
+            constructor() {
+                this.history = [];
+            }
+
+            addNode(x, y, energy, scaleX, scaleY) {
+                this.history.push({
+                    x: x * scaleX,
+                    y: y * scaleY,
+                    energy: energy,
+                    size: 2 + (energy * 8)
+                });
+            }
+
+            trim(maxLength, isPressing) {
+                if (this.history.length > maxLength) {
+                    this.history.shift();
+                } else if (!isPressing && this.history.length > 0) {
+                    this.history.shift();
+                }
+            }
+
+            render(ctx, hueOffset, mirrorMode, width, height, isGhost = false) {
+                const len = this.history.length;
+                if (len === 0) return;
+
+                for (let i = 0; i < len; i++) {
+                    const node = this.history[i];
+                    const alpha = isGhost ? 0.6 : 1.0;
+                    const brightness = 40 + (60 * (i / len));
+
+                    ctx.fillStyle = `hsla(${hueOffset}, 100%, ${brightness}%, ${alpha})`;
+
+                    const size = node.size;
+                    const dx = Math.round(node.x - size / 2);
+                    const dy = Math.round(node.y - size / 2);
+                    const ds = Math.round(size);
+
+                    ctx.fillRect(dx, dy, ds, ds);
+
+                    if (mirrorMode === 1 || mirrorMode === 3) {
+                        ctx.fillRect(width - dx - ds, dy, ds, ds);
+                    }
+                    if (mirrorMode === 2 || mirrorMode === 3) {
+                        ctx.fillRect(dx, height - dy - ds, ds, ds);
+                    }
+                    if (mirrorMode === 3) {
+                        ctx.fillRect(width - dx - ds, height - dy - ds, ds, ds);
+                    }
+                }
+            }
+        }
+
+        /**
+         * MAIN APP
+         */
+        const audio = new AudioEngine();
+        const canvas = document.getElementById('pixelCanvas');
+        const ctx = canvas.getContext('2d', { alpha: false });
+
+        const width = 320;
+        const height = 180;
+        canvas.width = width;
+        canvas.height = height;
+
+        // UI
+        const overlay = document.getElementById('overlay');
+        const hudFreq = document.getElementById('debug-freq');
+        const hudTime = document.getElementById('debug-time');
+        const seqBtn = document.getElementById('seq-btn');
+        const mirrorBtn = document.getElementById('mirror-btn');
+        const btnPlay = document.getElementById('btn-play');
+        const btnPause = document.getElementById('btn-pause');
+        const btnStop = document.getElementById('btn-stop');
+
+        // FX Sliders
+        const slComb = document.getElementById('sl-comb');
+        const slGrain = document.getElementById('sl-grain');
+        const slPhaser = document.getElementById('sl-phaser');
+        const slVol = document.getElementById('sl-vol');
+        const slSpeed = document.getElementById('sl-speed');
+
+        // Synth Sliders
+        const slOscMix = document.getElementById('sl-osc-mix');
+        const slDetune = document.getElementById('sl-detune');
+        const slSub = document.getElementById('sl-sub');
+        const slAtk = document.getElementById('sl-atk');
+        const slRel = document.getElementById('sl-rel');
+        const slLfo = document.getElementById('sl-lfo');
+        const slRes = document.getElementById('sl-res');
+
+        // State
+        let started = false;
+        let isDrawing = false;
+        let isRecording = false;
+        let mirrorMode = 0;
+        let globalHue = 0;
+
+        let transportState = 'PLAYING';
+        let globalTime = 0;
+        let lastFrameTime = 0;
+        let playbackRate = 1.0;
+
+        let mouseX = 0;
+        let mouseY = 0;
+        let energy = 0;
+
+        let liveVoice = null;
+        let liveWorm = new Worm();
+        let loops = [];
+        let currentRecording = [];
+        let recordingStartTime = 0;
+
+        function startGame() {
+            if (!started) {
+                audio.init();
+                liveVoice = audio.createVoice();
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.style.display = 'none', 500);
+
+                ctx.fillStyle = '#050505';
+                ctx.fillRect(0, 0, width, height);
+
+                started = true;
+                lastFrameTime = performance.now();
+            }
+        }
+
+        // --- Synth Param Listeners ---
+        function updateSynthConfig() {
+            synthConfig.oscMix = parseFloat(slOscMix.value);
+            synthConfig.detune = parseFloat(slDetune.value);
+            synthConfig.subVol = parseFloat(slSub.value);
+            synthConfig.attack = parseFloat(slAtk.value);
+            synthConfig.release = parseFloat(slRel.value);
+            synthConfig.wobble = parseFloat(slLfo.value);
+            synthConfig.res = parseFloat(slRes.value);
+
+            // Apply to live voice instantly
+            if (liveVoice) liveVoice.updateMix();
+
+            // Apply to all loops instantly (so you can "DJ" the synth sound)
+            loops.forEach(l => l.voice.updateMix());
+        }
+
+        // Add listeners to all synth sliders
+        [slOscMix, slDetune, slSub, slAtk, slRel, slLfo, slRes].forEach(el => {
+            el.addEventListener('input', updateSynthConfig);
+        });
+
+
+        // --- Transport ---
+        function setTransport(state) {
+            transportState = state;
+
+            btnPlay.classList.remove('active');
+            btnPause.classList.remove('active');
+            btnStop.classList.remove('active');
+
+            if (state === 'PLAYING') btnPlay.classList.add('active');
+            if (state === 'PAUSED') btnPause.classList.add('active');
+            if (state === 'STOPPED') btnStop.classList.add('active');
+
+            if (state === 'STOPPED') {
+                globalTime = 0;
+                loops.forEach(l => l.voice.silence());
+            } else if (state === 'PAUSED') {
+                loops.forEach(l => l.voice.silence());
+            }
+        }
+
+        btnPlay.addEventListener('click', (e) => { e.stopPropagation(); setTransport('PLAYING'); });
+        btnPause.addEventListener('click', (e) => { e.stopPropagation(); setTransport('PAUSED'); });
+        btnStop.addEventListener('click', (e) => { e.stopPropagation(); setTransport('STOPPED'); });
+
+
+        // --- Interaction ---
+        function startRecording() {
+            currentRecording = [];
+            recordingStartTime = Date.now();
+        }
+
+        function stopRecording() {
+            if (currentRecording.length > 5) {
+                const loopDuration = Date.now() - recordingStartTime;
+                const newLoop = {
+                    duration: loopDuration,
+                    startOffset: globalTime,
+                    frames: [...currentRecording],
+                    voice: audio.createVoice(), // Creates voice with current config applied
+                    worm: new Worm()
+                };
+                loops.push(newLoop);
+            }
+            currentRecording = [];
+        }
+
+        function handleInputStart(x, y) {
+            if (!started) return;
+            isDrawing = true;
+            mouseX = x;
+            mouseY = y;
+            if (liveVoice) liveVoice.triggerAttack();
+
+            if (isRecording) {
+                if (transportState === 'STOPPED') setTransport('PLAYING');
+                startRecording();
+            }
+        }
+
+        function handleInputMove(x, y) {
+            if (!isDrawing) return;
+            mouseX = x;
+            mouseY = y;
+        }
+
+        function handleInputEnd() {
+            isDrawing = false;
+            if (liveVoice) {
+                liveVoice.triggerRelease();
+            }
+            if (isRecording) {
+                stopRecording();
+            }
+        }
+
+        // --- Render Loop ---
+        function loop(timestamp) {
+            requestAnimationFrame(loop);
+
+            const dt = timestamp - lastFrameTime;
+            lastFrameTime = timestamp;
+
+            if (started && transportState === 'PLAYING') {
+                globalTime += dt * playbackRate;
+            }
+
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = width / rect.width;
+            const scaleY = height / rect.height;
+            const xRatio = mouseX / window.innerWidth;
+            const yRatio = 1 - (mouseY / window.innerHeight);
+
+            // Energy Logic
+            if (isDrawing) {
+                if (energy < 1.0) energy += 0.01;
+            } else {
+                if (energy > 0) energy -= 0.05;
+                if (energy < 0) energy = 0;
+            }
+
+            globalHue++;
+
+            if (started) {
+                // A. Live Input
+                const minFreq = 65;
+                const maxFreq = 1046;
+                const freq = minFreq * Math.pow(maxFreq / minFreq, xRatio);
+                const currentFreq = Math.round(freq);
+
+                liveVoice.update(freq, yRatio, energy);
+
+                liveWorm.addNode(mouseX, mouseY, energy, scaleX, scaleY);
+                const maxTail = 10 + Math.floor(energy * 50);
+                liveWorm.trim(maxTail, isDrawing);
+
+                const activeHue = (globalHue + (energy * 100)) % 360;
+                liveWorm.render(ctx, activeHue, mirrorMode, width, height, false);
+
+                if (isDrawing && isRecording) {
+                    currentRecording.push({
+                        relTime: Date.now() - recordingStartTime,
+                        x: mouseX,
+                        y: mouseY,
+                        energy: energy,
+                        freq: freq,
+                        yRatio: yRatio
+                    });
+                }
+
+                // B. Loops
+                if (transportState === 'PLAYING') {
+                    loops.forEach(loopObj => {
+                        let loopTime = (globalTime - loopObj.startOffset) % loopObj.duration;
+                        if (loopTime < 0) loopTime += loopObj.duration;
+
+                        let frame = loopObj.frames.find(f => f.relTime >= loopTime);
+                        if (!frame) frame = loopObj.frames[loopObj.frames.length - 1];
+
+                        if (frame) {
+                            // Ensure voice gate is open to some degree during loop
+                            // We set it to 0.4 * attack/decay logic...
+                            // Actually since we loop, we want constant output modulated by envelope? 
+                            // Or just force volume?
+                            // Let's force volume but respect the master envelope release if loop stops.
+                            // Simply setting target gain works for this engine.
+                            loopObj.voice.amp.gain.setTargetAtTime(0.4, audio.ctx.currentTime, 0.1);
+
+                            loopObj.voice.update(frame.freq, frame.yRatio, frame.energy);
+
+                            loopObj.worm.addNode(frame.x, frame.y, frame.energy, scaleX, scaleY);
+                            const loopTail = 10 + Math.floor(frame.energy * 50);
+                            loopObj.worm.trim(loopTail, true);
+
+                            const loopHue = (globalHue + (frame.energy * 100) + 180) % 360;
+                            loopObj.worm.render(ctx, loopHue, mirrorMode, width, height, true);
+                        }
+                    });
+                } else if (transportState === 'PAUSED') {
+                    loops.forEach(loopObj => {
+                        const loopHue = (globalHue + 180) % 360;
+                        loopObj.worm.render(ctx, loopHue, mirrorMode, width, height, true);
+                    });
+                }
+
+                hudFreq.innerText = currentFreq;
+                hudTime.innerText = (globalTime / 1000).toFixed(1);
+
+                // Update FX
+                audio.setFX(slComb.value, slGrain.value, slPhaser.value, slVol.value);
+                playbackRate = parseFloat(slSpeed.value);
+            }
+        }
+
+        // Listeners
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        overlay.addEventListener('click', startGame);
+
+        document.getElementById('clear-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            ctx.fillStyle = '#050505';
+            ctx.fillRect(0, 0, width, height);
+            liveWorm.history = [];
+            loops.forEach(l => l.voice.destroy());
+            loops = [];
+            setTransport('STOPPED');
+        });
+
+        mirrorBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            mirrorMode = (mirrorMode + 1) % 4;
+            const modes = ["OFF", "HORZ", "VERT", "QUAD"];
+            const colors = ["#333", "#00f", "#800080", "#ffd700"];
+            mirrorBtn.textContent = `Mirror: ${modes[mirrorMode]}`;
+            mirrorBtn.style.background = colors[mirrorMode];
+            mirrorBtn.style.color = mirrorMode === 3 ? "#000" : "#fff";
+        });
+
+        seqBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            isRecording = !isRecording;
+            if (isRecording) {
+                seqBtn.textContent = "SEQ: REC";
+                seqBtn.classList.add("recording");
+            } else {
+                seqBtn.textContent = "SEQ: OFF";
+                seqBtn.classList.remove("recording");
+            }
+        });
+
+        const container = document.getElementById('game-container');
+        container.addEventListener('mousedown', e => {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') {
+                handleInputStart(e.clientX, e.clientY);
+            }
+        });
+        window.addEventListener('mousemove', e => handleInputMove(e.clientX, e.clientY));
+        window.addEventListener('mouseup', handleInputEnd);
+
+        container.addEventListener('touchstart', e => {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') {
+                e.preventDefault();
+                handleInputStart(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: false });
+
+        window.addEventListener('touchmove', e => {
+            if (isDrawing) {
+                e.preventDefault();
+                handleInputMove(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: false });
+
+        window.addEventListener('touchend', e => {
+            e.preventDefault();
+            handleInputEnd();
+        });
+
+        requestAnimationFrame(loop);
+
+    </script>
+</body>
+
+</html>
