@@ -1,0 +1,2018 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Music Pixels: Gravity & Gears (Refined)</title>
+    <style>
+        /* --- VIBECODE AESTHETICS --- */
+        :root {
+            --bg-color: #050505;
+            --panel-bg: rgba(10, 10, 12, 0.95);
+            --text-main: #a0a0a0;
+            --accent-cyan: #00f0ff;
+            --accent-magenta: #ff0055;
+            --accent-green: #00ff41;
+            --accent-yellow: #ffcc00;
+            --accent-blue: #0088ff;
+            --accent-orange: #ff8800;
+            --accent-rock: #888899;
+            --accent-enemy: #ff3333;
+            --accent-boss: #ff0000;
+            --accent-tree: #8b4513;
+            --accent-leaf: #32cd32;
+            --accent-chest: #ffd700;
+            --border-color: #333;
+            --font-stack: 'Courier New', Courier, monospace;
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            overflow: hidden;
+            font-family: var(--font-stack);
+            color: var(--text-main);
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* CRT SCANLINE OVERLAY */
+        body::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 100;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+
+        /* --- UI LAYER --- */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 0;
+            box-sizing: border-box;
+            z-index: 10;
+        }
+
+        /* TOP UI CONTAINER */
+        #ui-top-container {
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--border-color);
+            pointer-events: auto;
+            display: flex;
+            flex-direction: column;
+            padding: 5px;
+            gap: 5px;
+            position: relative;
+        }
+
+        /* TOP BAR (Tools) */
+        #top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        /* LEVEL EDITOR BAR */
+        #level-bar {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            border-top: 1px dashed #333;
+            padding-top: 5px;
+            flex-wrap: wrap;
+            gap: 10px;
+            background: rgba(20, 20, 30, 0.5);
+            padding-bottom: 5px;
+        }
+
+        /* SECONDARY BAR (Synth) */
+        #synth-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px dashed #333;
+            padding-top: 5px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #1a1a1a;
+            color: var(--text-main);
+            border: 1px solid var(--text-main);
+            padding: 3px 6px;
+            font-family: inherit;
+            font-size: 9px;
+            text-transform: uppercase;
+            cursor: pointer;
+            min-width: 35px;
+            transition: all 0.1s;
+        }
+
+        button:active {
+            transform: translateY(1px);
+            background: #333;
+        }
+
+        button.active {
+            background: var(--text-main);
+            color: #000;
+        }
+
+        /* Mode Button Colors */
+        button#btn-mode-runner.active {
+            background: var(--accent-yellow);
+            color: #000;
+            border-color: var(--accent-yellow);
+            box-shadow: 0 0 5px var(--accent-yellow);
+        }
+
+        button#btn-mode-erase.active {
+            background: #fff;
+            color: #000;
+        }
+
+        button#btn-mode-water.active {
+            background: var(--accent-blue);
+            color: #fff;
+        }
+
+        button#btn-mode-lava.active {
+            background: #ff4500;
+            color: #fff;
+            box-shadow: 0 0 5px #ff4500;
+        }
+
+        button#btn-mode-blob.active {
+            background: #00ff00;
+            color: #000;
+            box-shadow: 0 0 5px #00ff00;
+            font-weight: bold;
+        }
+
+        button#btn-mode-ladder.active {
+            background: var(--accent-orange);
+            color: #000;
+        }
+
+        button#btn-mode-rock.active {
+            background: var(--accent-rock);
+            color: #000;
+        }
+
+        button#btn-mode-grass.active {
+            background: var(--accent-green);
+            color: #000;
+        }
+
+        button#btn-mode-tree.active {
+            background: var(--accent-tree);
+            color: #fff;
+        }
+
+        button#btn-mode-leaf.active {
+            background: var(--accent-leaf);
+            color: #fff;
+        }
+
+        button#btn-mode-portal.active {
+            background: #9900ff;
+            color: #fff;
+        }
+
+        button#btn-mode-enemy.active {
+            background: var(--accent-enemy);
+            color: #fff;
+        }
+
+        button#btn-mode-boss.active {
+            background: var(--accent-boss);
+            color: #fff;
+            font-weight: bold;
+            border-color: var(--accent-boss);
+        }
+
+        button#btn-mode-chest.active {
+            background: var(--accent-chest);
+            color: #000;
+            font-weight: bold;
+            border-color: var(--accent-chest);
+        }
+
+        button#btn-mode-planet.active {
+            background: #444;
+            color: #fff;
+            border-color: #fff;
+        }
+
+        button#btn-mode-void.active {
+            background: #000;
+            color: #fff;
+            border-color: #90f;
+        }
+
+        button#btn-mode-star.active {
+            background: #000;
+            color: #ff0;
+            border-color: #ff0;
+        }
+
+        button#btn-mode-cloud.active {
+            background: #eee;
+            color: #333;
+            border-color: #fff;
+        }
+
+        button#btn-mode-led.active {
+            background: #fff;
+            color: #000;
+            text-shadow: 0 0 5px #fff;
+        }
+
+        button#btn-mode-build.active {
+            background: #555;
+            color: #fff;
+            border-color: #aaa;
+        }
+
+        button#btn-mode-root.active {
+            background: #5D4037;
+            color: #90ee90;
+            border-color: #8d6e63;
+        }
+
+        button#btn-save-level {
+            background: var(--accent-blue);
+            color: #fff;
+            border-color: var(--accent-cyan);
+        }
+
+        button#btn-save-level:active {
+            background: var(--accent-cyan);
+        }
+
+        button.record-btn.active {
+            background: var(--accent-magenta);
+            color: #fff;
+            animation: pulse 1s infinite;
+        }
+
+        .size-control {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 9px;
+            color: var(--text-main);
+            border: 1px solid #333;
+            padding: 2px 5px;
+            background: #111;
+        }
+
+        /* Checkbox label styling */
+        .cb-label {
+            font-size: 9px;
+            color: #aaa;
+            margin-left: 5px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .cb-label input {
+            margin-right: 3px;
+        }
+
+        .control-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .knob-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 30px;
+        }
+
+        .knob-label {
+            font-size: 8px;
+            color: #666;
+            margin-bottom: 1px;
+            text-align: center;
+        }
+
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 2px;
+            background: #333;
+            outline: none;
+            margin: 2px 0;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 6px;
+            height: 10px;
+            background: var(--text-main);
+            border: none;
+            cursor: pointer;
+        }
+
+        /* SCROLL SLIDER STYLE */
+        #scroll-slider {
+            width: 150px;
+            height: 10px;
+            -webkit-appearance: none;
+            background: #222;
+            border: 1px solid #444;
+        }
+
+        #scroll-slider::-webkit-slider-thumb {
+            width: 20px;
+            height: 10px;
+            background: var(--accent-yellow);
+            border: 1px solid #fff;
+        }
+
+        select.wave-select {
+            background: #111;
+            color: var(--accent-cyan);
+            border: 1px solid #333;
+            font-family: inherit;
+            font-size: 9px;
+            padding: 2px;
+            outline: none;
+            text-transform: uppercase;
+        }
+
+        input.text-input {
+            background: #111;
+            color: var(--accent-green);
+            border: 1px solid #333;
+            font-family: inherit;
+            font-size: 9px;
+            width: 30px;
+            text-align: center;
+        }
+
+        /* XY PAD */
+        #xy-pad {
+            position: relative;
+            width: 80px;
+            height: 50px;
+            background: radial-gradient(circle at 50% 50%, #222 0%, #000 100%);
+            border: 1px solid #444;
+            cursor: crosshair;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        #xy-cursor {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: var(--accent-magenta);
+            border: 1px solid #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 5px var(--accent-magenta);
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            top: 50%;
+            left: 50%;
+        }
+
+        #xy-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 10px 10px;
+            pointer-events: none;
+        }
+
+        /* Color coded sections */
+        .sec-synth input[type=range]::-webkit-slider-thumb {
+            background: var(--accent-cyan);
+        }
+
+        .sec-fx input[type=range]::-webkit-slider-thumb {
+            background: var(--accent-magenta);
+        }
+
+        /* OVERLAY */
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            text-align: center;
+        }
+
+        .glitch-text {
+            font-size: 2rem;
+            color: #fff;
+            text-shadow: 2px 0 var(--accent-magenta), -2px 0 var(--accent-cyan);
+            margin-bottom: 20px;
+        }
+
+        .start-btn {
+            padding: 15px 30px;
+            border: 1px solid var(--accent-green);
+            color: var(--accent-green);
+            font-size: 1.2rem;
+            cursor: pointer;
+            background: transparent;
+        }
+
+        .start-btn:hover {
+            background: var(--accent-green);
+            color: #000;
+        }
+
+        /* HELPER TOAST */
+        #helper-text {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: var(--accent-yellow);
+            font-size: 10px;
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+            text-shadow: 1px 1px 0 #000;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 0;
+            z-index: 50;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="game-container">
+        <canvas id="pixelCanvas"></canvas>
+
+        <div id="helper-text">WASD / ARROWS = MOVE | SPACE = JUMP/JETPACK | CTRL+Z = UNDO | CAPS LOCK = LASER</div>
+
+        <div id="ui-layer">
+
+            <div id="ui-top-container">
+                <!-- TOP: Transport & Tools -->
+                <div id="top-bar">
+                    <div class="btn-group">
+                        <button id="btn-play" class="active">►</button>
+                        <button id="btn-stop">■</button>
+                        <button id="btn-rec" class="record-btn">REC LOOP</button>
+                        <label class="cb-label"><input type="checkbox" id="chk-visual-loop"> VISUALS</label>
+                        <button id="btn-undo">UNDO</button>
+                        <button id="btn-redo">REDO</button>
+                        <button id="btn-clear">CLR</button>
+                    </div>
+
+                    <div class="btn-group" style="margin-left:auto;">
+                        <button id="btn-mode-sand" class="active">SAND</button>
+                        <button id="btn-mode-draw">LINE</button>
+                        <button id="btn-mode-rock">ROCK</button>
+                        <button id="btn-mode-water">H2O</button>
+                        <button id="btn-mode-lava">LAVA</button>
+                        <button id="btn-mode-blob" style="color: #00ff00; border-color: #00ff00;">BLOB</button>
+                        <button id="btn-mode-grass">GRASS</button>
+                        <button id="btn-mode-root">ROOT</button>
+                        <button id="btn-mode-tree">TREE</button>
+                        <button id="btn-mode-leaf">LEAF</button>
+                        <button id="btn-mode-star">STAR</button>
+                        <button id="btn-mode-cloud">CLOUD</button>
+                        <button id="btn-mode-planet">PLANET: MOON</button>
+                        <button id="btn-mode-void">VOID</button>
+                        <button id="btn-mode-build">BUILD</button>
+                        <button id="btn-mode-led">LED: WHITE</button>
+                        <button id="btn-mode-portal">PORTAL</button>
+                        <button id="btn-mode-chest">CHEST</button>
+                        <button id="btn-mode-enemy">ENEMY</button>
+                        <button id="btn-mode-boss">BOSS</button>
+                        <button id="btn-mode-ladder">LADDER</button>
+                        <button id="btn-mode-erase">ERASE</button>
+                        <button id="btn-mode-runner">RUNNER</button>
+                    </div>
+                </div>
+
+                <!-- LEVEL EDITOR BAR -->
+                <div id="level-bar">
+                    <span style="font-size:9px; color: gold; letter-spacing:1px;">EDITOR</span>
+                    <div class="size-control">
+                        SCREENS: <input type="number" id="input-screens" class="text-input" value="10" min="1"
+                            max="100">
+                    </div>
+                    <div class="size-control">
+                        ZOOM:
+                        <button id="btn-zoom-out" style="width: 20px;">-</button>
+                        <button id="btn-zoom-in" style="width: 20px;">+</button>
+                    </div>
+                    <div class="size-control" style="flex: 1;">
+                        SCROLL: <input type="range" id="scroll-slider" min="0" max="100" value="0" style="width: 100%;">
+                    </div>
+
+                    <button id="btn-save-level" style="margin-left: 5px;">💾 SAVE</button>
+                    <div class="size-control">
+                        GEN <input type="checkbox" id="chk-gen" checked>
+                    </div>
+
+                    <div class="btn-group" style="margin-left:auto;">
+                        <button id="btn-pulse">PULSE: OFF</button>
+                        <button id="btn-mirror">MIR: OFF</button>
+                        <div class="size-control">
+                            SIZE <input type="range" id="brush-size" min="1" max="20" step="1" value="1"
+                                style="width: 100px">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECONDARY: Synth & FX -->
+                <div id="synth-bar">
+                    <!-- SYNTH SECTION -->
+                    <div
+                        style="display:flex; align-items:center; gap:5px; border-right:1px solid #333; padding-right:10px;">
+                        <span style="font-size:9px; color:var(--accent-cyan); letter-spacing:1px;">SYNTH</span>
+                        <select id="wave-select" class="wave-select">
+                            <option value="sine">SINE</option>
+                            <option value="square">SQUARE</option>
+                            <option value="sawtooth" selected>SAW</option>
+                            <option value="triangle">TRI</option>
+                            <option value="drum">DRUM</option>
+                        </select>
+                        <div class="control-row sec-synth">
+                            <div class="knob-container"><label class="knob-label">ATK</label><input type="range"
+                                    id="p-atk" min="0.01" max="1" step="0.01" value="0.1"></div>
+                            <div class="knob-container"><label class="knob-label">REL</label><input type="range"
+                                    id="p-rel" min="0.1" max="2" step="0.1" value="0.5"></div>
+                            <div class="knob-container"><label class="knob-label">VOL</label><input type="range"
+                                    id="p-vol" min="0" max="1" step="0.01" value="0.5"></div>
+                        </div>
+                    </div>
+
+                    <!-- DUB DELAY PAD -->
+                    <div style="display:flex; align-items:center; gap:5px; padding-left:5px;">
+                        <span style="font-size:9px; color:var(--accent-magenta); letter-spacing:1px;">DUB PAD</span>
+                        <div id="xy-pad">
+                            <div id="xy-grid"></div>
+                            <div id="xy-cursor"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div id="overlay">
+            <h1 class="glitch-text">MUSIC PIXELS v8.7</h1>
+            <p style="color:#888; margin-bottom: 30px; font-size: 0.8rem;">
+                GENERATIVE AUDIO-VISUAL WORKSTATION<br>
+                DRAW TO CREATE SYNTH + LIFE<br>
+                <span style="color: gold">NEW: BLOB PHYSICS, SCROLL ZOOM & PRECISION SIZING</span>
+            </p>
+            <button class="start-btn" id="start-btn">INITIALIZE SYSTEM</button>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * MUSIC PIXELS v8.7
+         * - Brush Size is now Diameter (1px - 20px)
+         * - Fine Detail Mode (Size=1) allows drawing 1px without organic randomization
+         */
+
+        const DEFAULT_VIEW_W = 320;
+        const CANVAS_H = 180;
+
+        // --- TYPES ---
+        const TYPE_EMPTY = 0;
+        const TYPE_SAND = 1;
+        const TYPE_WALL = 2;
+        const TYPE_WATER = 3;
+        const TYPE_LADDER = 4;
+        const TYPE_ROCK = 5;
+        const TYPE_PLANT = 6;
+        const TYPE_TREE = 7;
+        const TYPE_LEAF = 8;
+        const TYPE_LAVA = 9;
+        const TYPE_STAR = 10;
+        const TYPE_LED = 11;
+        const TYPE_LED_FADE = 12;
+        const TYPE_LED_RGB = 13;
+        const TYPE_LED_STROBE = 14;
+        const TYPE_ROOT = 15;
+        const TYPE_CLOUD = 16;
+        const TYPE_BLOB = 17;
+        const TYPE_PLANET_BODY = 5;
+
+        // --- STATE MANAGEMENT ---
+        const state = {
+            isPlaying: false,
+            isRecording: false,
+            isDrawing: false,
+            frame: 0,
+            playbackSpeed: 1.0,
+            globalTime: 0,
+
+            // World / Levels
+            currentLevel: 0,
+            levels: [],
+            autoGen: true,
+            cameraX: 0,
+            history: [],
+            redoHistory: [],
+
+            // Editor Stats
+            screens: 10,
+            levelW: DEFAULT_VIEW_W * 10,
+            viewW: DEFAULT_VIEW_W,
+            zoom: 1.0,
+
+            mirrorMode: 0,
+            drawMode: 'SAND',
+            ledMode: 0,
+            planetType: 0, // 0: Moon, 1: Ringed, 2: Ice, 3: Terra
+            brushSize: 1, // Default to 1px
+            brushVar: 0.5,
+            pulseMode: false,
+            dragStart: null,
+
+            // Input
+            mouseX: 160,
+            mouseY: 90,
+
+            // Audio Params
+            synth: { waveform: 'sawtooth', atk: 0.05, rel: 0.3, vol: 0.5 },
+            fx: { delayTime: 0.3, feedback: 0.4, filterFreq: 2000 },
+
+            // Recording
+            loopStartTime: 0,
+            currentLoop: [],
+            loops: [],
+
+            // Objects
+            chargingBomb: false,
+            bombPower: 0,
+            bombs: [],
+            lasers: [],
+            particles: [],
+            enemies: [],
+            portals: [],
+            chests: [],
+            planets: [],
+            blackholes: [],
+            pendingPortalLink: null
+        };
+
+        const player = {
+            active: false,
+            x: 50, y: 50, w: 4, h: 7, vx: 0, vy: 0, speed: 1.5, jumpPower: -3.0,
+            grounded: false, onLadder: false, facing: 1, color: 0xFF00CCFF, stepTimer: 0,
+            teleportCooldown: 0, hasJetpack: false, hasLaser: false, jetpackFuel: 100,
+            hp: 10, maxHp: 10, invulnTimer: 0, runFrame: 0
+        };
+
+        const keys = { up: false, down: false, left: false, right: false, digLeft: false, digRight: false, jump: false, bomb: false };
+
+        window.addEventListener('keydown', (e) => {
+            const k = e.key.toLowerCase();
+            if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); Sim.undo(); return; }
+            if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); Sim.redo(); return; }
+
+            if (e.key === "CapsLock") {
+                // Shoot Laser
+                if (player.active && player.hasLaser) {
+                    Audio.playLaser();
+                    const lx = player.x + (player.facing === 1 ? 5 : -1);
+                    const ly = player.y + 2;
+                    state.lasers.push({ x: lx, y: ly, vx: player.facing * 8, life: 60 });
+                }
+            }
+
+            if (k === "arrowup" || k === "w") keys.up = true;
+            if (k === "arrowdown" || k === "s") keys.down = true;
+            if (k === "arrowleft" || k === "a") keys.left = true;
+            if (k === "arrowright" || k === "d") keys.right = true;
+            if (k === " " || k === "arrowup" || k === "w") keys.jump = true;
+            if (k === "z" || k === "q") keys.digLeft = true;
+            if (k === "x" || k === "e") keys.digRight = true;
+            if (k === "tab") { keys.bomb = true; e.preventDefault(); }
+        });
+        window.addEventListener('keyup', (e) => {
+            const k = e.key.toLowerCase();
+            if (k === "arrowup" || k === "w") keys.up = false;
+            if (k === "arrowdown" || k === "s") keys.down = false;
+            if (k === "arrowleft" || k === "a") keys.left = false;
+            if (k === "arrowright" || k === "d") keys.right = false;
+            if (k === " " || k === "arrowup" || k === "w") keys.jump = false;
+            if (k === "z" || k === "q") keys.digLeft = false;
+            if (k === "x" || k === "e") keys.digRight = false;
+            if (k === "tab") { keys.bomb = false; e.preventDefault(); }
+        });
+
+        // --- AUDIO ENGINE ---
+        const Audio = {
+            ctx: null, master: null, analyser: null, delayNode: null, feedbackNode: null, delayFilter: null, dataArray: null,
+            init() {
+                const AC = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AC();
+                this.master = this.ctx.createGain();
+                this.analyser = this.ctx.createAnalyser();
+                this.analyser.fftSize = 256;
+                this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+                this.delayNode = this.ctx.createDelay(5.0);
+                this.feedbackNode = this.ctx.createGain();
+                this.delayFilter = this.ctx.createBiquadFilter();
+                this.delayNode.delayTime.value = 0.3; this.feedbackNode.gain.value = 0.4;
+                this.delayFilter.type = 'lowpass'; this.delayFilter.frequency.value = 2000; this.delayFilter.Q.value = 0.5;
+                this.master.connect(this.analyser); this.analyser.connect(this.ctx.destination);
+                this.master.connect(this.delayNode); this.delayNode.connect(this.delayFilter);
+                this.delayFilter.connect(this.feedbackNode); this.feedbackNode.connect(this.delayNode);
+                this.delayFilter.connect(this.ctx.destination);
+            },
+
+            updateParamsFrame() {
+                if (!this.ctx) return;
+                const t = this.ctx.currentTime;
+                this.delayNode.delayTime.setTargetAtTime(state.fx.delayTime, t, 0.1);
+                this.feedbackNode.gain.setTargetAtTime(state.fx.feedback, t, 0.1);
+                this.delayFilter.frequency.setTargetAtTime(state.fx.filterFreq, t, 0.1);
+            },
+
+            updateDelayParams(x, y) {
+                state.fx.feedback = x * 0.95;
+                state.fx.filterFreq = 100 + (Math.pow(y, 3) * 10000);
+            },
+
+            getAnalysis() { if (!this.analyser) return { bass: 0 }; this.analyser.getByteFrequencyData(this.dataArray); let bass = 0; for (let i = 0; i < 10; i++) bass += this.dataArray[i]; return { bass: bass / (10 * 255) }; },
+
+            playSynth(x, y) {
+                if (!this.ctx) return; const t = this.ctx.currentTime, o = this.ctx.createOscillator(), g = this.ctx.createGain();
+                const notes = [130.8, 146.8, 164.8, 196.0, 220.0, 261.6, 293.7, 329.6, 392.0, 440.0, 523.3, 587.3, 659.3, 784.0, 880.0];
+                const freq = notes[Math.min(Math.max(Math.floor((1.0 - (y / CANVAS_H)) * notes.length), 0), notes.length - 1)];
+
+                if (state.synth.waveform === 'drum') {
+                    o.type = 'sine';
+                    o.frequency.setValueAtTime(freq * 3, t);
+                    o.frequency.exponentialRampToValueAtTime(freq * 0.5, t + 0.1);
+                    g.gain.setValueAtTime(0, t);
+                    g.gain.linearRampToValueAtTime(state.synth.vol * 1.5, t + 0.005);
+                    g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+                    o.connect(g); g.connect(this.master);
+                    o.start(t); o.stop(t + 0.2);
+                } else {
+                    o.type = state.synth.waveform;
+                    o.frequency.setValueAtTime(freq, t);
+                    g.gain.setValueAtTime(0, t);
+                    g.gain.linearRampToValueAtTime(state.synth.vol, t + state.synth.atk);
+                    g.gain.exponentialRampToValueAtTime(0.001, t + state.synth.atk + state.synth.rel);
+                    o.connect(g); g.connect(this.master);
+                    o.start(t); o.stop(t + state.synth.atk + state.synth.rel);
+                }
+            },
+            playSfx(type, freq, dur) { if (!this.ctx) return; const t = this.ctx.currentTime, o = this.ctx.createOscillator(), g = this.ctx.createGain(); o.type = type; o.frequency.setValueAtTime(freq, t); g.gain.setValueAtTime(0.1, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur); o.connect(g); g.connect(this.ctx.destination); o.start(t); o.stop(t + dur); },
+            playFootstep() { this.playSfx('square', 200, 0.05); }, playDig() { this.playSfx('triangle', 100, 0.1); }, playThrow() { this.playSfx('square', 300, 0.1); }, playJetpack() { if (Math.random() > 0.7) this.playSfx('sawtooth', 80, 0.1); }, playCharge() { this.playSfx('sawtooth', 200 + (state.bombPower * 500), 0.1); }, playChestOpen() { this.playSfx('sine', 800, 0.5); }, playTeleport() { this.playSfx('sine', 1200, 0.3); }, playHurt() { this.playSfx('sawtooth', 100, 0.3); },
+            playExplode() { if (!this.ctx) return; const t = this.ctx.currentTime, n = this.ctx.createBufferSource(), b = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.5, this.ctx.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; n.buffer = b; const g = this.ctx.createGain(); g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.5); n.connect(g); g.connect(this.ctx.destination); n.start(t); },
+            playLaser() {
+                if (!this.ctx) return;
+                const t = this.ctx.currentTime;
+                const o = this.ctx.createOscillator();
+                const g = this.ctx.createGain();
+                o.type = 'square';
+                o.frequency.setValueAtTime(800, t);
+                o.frequency.exponentialRampToValueAtTime(200, t + 0.15);
+                g.gain.setValueAtTime(0.2, t);
+                g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+                o.connect(g); g.connect(this.ctx.destination);
+                o.start(t); o.stop(t + 0.15);
+            },
+            playEnemyDeath() {
+                if (!this.ctx) return;
+                const t = this.ctx.currentTime;
+                const o = this.ctx.createOscillator();
+                const g = this.ctx.createGain();
+                o.type = 'triangle';
+                o.frequency.setValueAtTime(150, t);
+                o.frequency.exponentialRampToValueAtTime(10, t + 0.3);
+                g.gain.setValueAtTime(0.3, t);
+                g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+                o.connect(g); g.connect(this.ctx.destination);
+                o.start(t); o.stop(t + 0.3);
+            }
+        };
+
+        // --- SIMULATION ENGINE ---
+        const Sim = {
+            grid: null,
+            colorGrid: null,
+
+            init() {
+                this.resize(10); // Default 10 screens
+                this.saveLevel(0);
+            },
+
+            resize(screens) {
+                state.screens = screens;
+                state.levelW = DEFAULT_VIEW_W * screens;
+                const newGrid = new Uint8Array(state.levelW * CANVAS_H);
+                const newColor = new Uint32Array(state.levelW * CANVAS_H);
+                this.grid = newGrid;
+                this.colorGrid = newColor;
+                if (state.autoGen) this.generateTerrain();
+                const slider = document.getElementById('scroll-slider');
+                if (slider) { slider.max = state.levelW - state.viewW; slider.value = 0; }
+                state.cameraX = 0;
+                state.history = [];
+                state.redoHistory = [];
+            },
+
+            clear() {
+                if (this.grid) this.grid.fill(0);
+                if (this.colorGrid) this.colorGrid.fill(0xFF000000);
+                state.portals = []; state.enemies = []; state.bombs = []; state.chests = []; state.planets = []; state.blackholes = [];
+                state.lasers = [];
+                state.cameraX = 0;
+            },
+
+            // --- UNDO / REDO SYSTEM ---
+            createSnapshot() {
+                return {
+                    grid: new Uint8Array(this.grid),
+                    colorGrid: new Uint32Array(this.colorGrid),
+                    portals: JSON.parse(JSON.stringify(state.portals)),
+                    enemies: JSON.parse(JSON.stringify(state.enemies)),
+                    chests: JSON.parse(JSON.stringify(state.chests)),
+                    planets: JSON.parse(JSON.stringify(state.planets)),
+                    blackholes: JSON.parse(JSON.stringify(state.blackholes)),
+                    bombs: JSON.parse(JSON.stringify(state.bombs))
+                };
+            },
+
+            saveSnapshot() {
+                if (state.history.length > 20) state.history.shift();
+                state.history.push(this.createSnapshot());
+                state.redoHistory = [];
+            },
+
+            undo() {
+                if (state.history.length === 0) return;
+                state.redoHistory.push(this.createSnapshot());
+                const snap = state.history.pop();
+                this.restoreSnapshot(snap);
+            },
+
+            redo() {
+                if (state.redoHistory.length === 0) return;
+                state.history.push(this.createSnapshot());
+                const snap = state.redoHistory.pop();
+                this.restoreSnapshot(snap);
+            },
+
+            restoreSnapshot(snap) {
+                if (snap.grid.length === this.grid.length) {
+                    this.grid.set(snap.grid);
+                    this.colorGrid.set(snap.colorGrid);
+                    state.portals = JSON.parse(JSON.stringify(snap.portals));
+                    state.enemies = JSON.parse(JSON.stringify(snap.enemies));
+                    state.chests = JSON.parse(JSON.stringify(snap.chests));
+                    state.planets = JSON.parse(JSON.stringify(snap.planets));
+                    state.blackholes = JSON.parse(JSON.stringify(snap.blackholes));
+                    state.bombs = JSON.parse(JSON.stringify(snap.bombs));
+                }
+            },
+
+            // --- LEVEL MANAGEMENT ---
+            saveLevel(index) {
+                state.levels[index] = {
+                    screens: state.screens,
+                    grid: new Uint8Array(this.grid),
+                    colorGrid: new Uint32Array(this.colorGrid),
+                    portals: JSON.parse(JSON.stringify(state.portals)),
+                    enemies: JSON.parse(JSON.stringify(state.enemies)),
+                    chests: JSON.parse(JSON.stringify(state.chests)),
+                    planets: JSON.parse(JSON.stringify(state.planets)),
+                    blackholes: JSON.parse(JSON.stringify(state.blackholes))
+                };
+            },
+
+            loadLevel(index) {
+                state.currentLevel = index;
+                const level = state.levels[index];
+
+                if (level) {
+                    if (level.screens !== state.screens) {
+                        this.resize(level.screens);
+                        document.getElementById('input-screens').value = level.screens;
+                    }
+                    this.grid.set(level.grid);
+                    this.colorGrid.set(level.colorGrid);
+                    state.portals = JSON.parse(JSON.stringify(level.portals));
+                    state.enemies = JSON.parse(JSON.stringify(level.enemies));
+                    state.chests = JSON.parse(JSON.stringify(level.chests));
+                    state.planets = JSON.parse(JSON.stringify(level.planets || []));
+                    state.blackholes = JSON.parse(JSON.stringify(level.blackholes || []));
+                } else {
+                    this.resize(state.screens); this.clear();
+                    if (state.autoGen) this.generateTerrain();
+                }
+                const hasNext = state.portals.some(p => p.targetLevel === index + 1);
+                if (!hasNext) state.portals.push({ x: state.levelW - 30, y: CANVAS_H - 40, isEntrance: true, linkId: 'next', targetLevel: index + 1 });
+                state.history = [];
+                state.redoHistory = [];
+            },
+
+            generateTerrain() {
+                for (let x = 0; x < state.levelW; x++) {
+                    const h = Math.floor(CANVAS_H - 20 - (Math.sin(x * 0.02) * 20) - (Math.sin(x * 0.05) * 10) - (Math.random() * 2));
+                    for (let y = h; y < CANVAS_H; y++) { this.setPixel(x, y, TYPE_SAND, 0xFF44AAFF); }
+                    if (Math.random() < 0.02) spawnEnemy(x, h - 10, Math.random() > 0.9 ? 'BOSS' : 'NORMAL');
+                }
+            },
+
+            setPixel(x, y, type, color) { if (x < 0 || x >= state.levelW || y < 0 || y >= CANVAS_H) return; const idx = Math.floor(y) * state.levelW + Math.floor(x); this.grid[idx] = type; this.colorGrid[idx] = color; },
+            removePixel(x, y) { if (x < 0 || x >= state.levelW || y < 0 || y >= CANVAS_H) return; const idx = Math.floor(y) * state.levelW + Math.floor(x); this.grid[idx] = 0; this.colorGrid[idx] = 0xFF000000; },
+            getType(x, y) { if (x < 0 || x >= state.levelW || y < 0 || y >= CANVAS_H) return TYPE_WALL; return this.grid[Math.floor(y) * state.levelW + Math.floor(x)]; },
+            isSolid(x, y) { const t = this.getType(x, y); return t === TYPE_SAND || t === TYPE_WALL || t === TYPE_ROCK || t === TYPE_PLANET_BODY; },
+            isSand(x, y) { return this.getType(x, y) === TYPE_SAND; },
+            isLadder(x, y) { return this.getType(x, y) === TYPE_LADDER; },
+
+            update() {
+                const dir = Math.random() > 0.5 ? 1 : -1;
+                const startX = Math.max(0, Math.floor(state.cameraX - 50));
+                const endX = Math.min(state.levelW, Math.floor(state.cameraX + state.viewW + 50));
+
+                for (let y = CANVAS_H - 1; y >= 0; y--) {
+                    for (let x = startX; x < endX; x++) {
+                        const idx = y * state.levelW + x; const type = this.grid[idx];
+
+                        if (type === TYPE_SAND) {
+                            const below = (y + 1) * state.levelW + x; const belowLeft = (y + 1) * state.levelW + (x - 1); const belowRight = (y + 1) * state.levelW + (x + 1);
+                            if (y < CANVAS_H - 1) {
+                                if (this.grid[below] === TYPE_EMPTY || this.grid[below] === TYPE_WATER || this.grid[below] === TYPE_LAVA || this.grid[below] === TYPE_BLOB) { const bt = this.grid[below], bc = this.colorGrid[below]; this.grid[below] = TYPE_SAND; this.colorGrid[below] = this.colorGrid[idx]; this.grid[idx] = bt; this.colorGrid[idx] = bt; this.colorGrid[idx] = bc; }
+                                else if (x > 0 && (this.grid[belowLeft] === TYPE_EMPTY || this.grid[belowLeft] === TYPE_WATER)) { const bt = this.grid[belowLeft], bc = this.colorGrid[belowLeft]; this.grid[belowLeft] = TYPE_SAND; this.colorGrid[belowLeft] = this.colorGrid[idx]; this.grid[idx] = bt; this.colorGrid[idx] = bc; }
+                                else if (x < state.levelW - 1 && (this.grid[belowRight] === TYPE_EMPTY || this.grid[belowRight] === TYPE_WATER)) { const bt = this.grid[belowRight], bc = this.colorGrid[belowRight]; this.grid[belowRight] = TYPE_SAND; this.colorGrid[belowRight] = this.colorGrid[idx]; this.grid[idx] = bt; this.colorGrid[idx] = bc; }
+                            }
+                        }
+                        else if (type === TYPE_WATER) {
+                            if (y < CANVAS_H - 1) {
+                                const below = (y + 1) * state.levelW + x;
+                                if (this.grid[below] === TYPE_EMPTY) { this.grid[below] = TYPE_WATER; this.colorGrid[below] = this.colorGrid[idx]; this.grid[idx] = TYPE_EMPTY; this.colorGrid[idx] = 0xFF000000; }
+                                else if (this.grid[below] === TYPE_SAND) { if (Math.random() < 0.05) { this.grid[below] = TYPE_WATER; this.grid[idx] = TYPE_EMPTY; } }
+                                else if (this.grid[below] === TYPE_LAVA) { this.grid[below] = TYPE_ROCK; this.colorGrid[below] = 0xFF888899; this.grid[idx] = TYPE_ROCK; this.colorGrid[idx] = 0xFF888899; } // Rock formation
+                                else { const side = x + dir; if (side >= 0 && side < state.levelW) { const sIdx = y * state.levelW + side; if (this.grid[sIdx] === TYPE_EMPTY) { this.grid[sIdx] = TYPE_WATER; this.colorGrid[sIdx] = this.colorGrid[idx]; this.grid[idx] = TYPE_EMPTY; this.colorGrid[idx] = 0xFF000000; } } }
+                            }
+                        }
+                        else if (type === TYPE_LAVA) {
+                            // SLOW DOWN MOVEMENT (Viscosity) - Only move 20% of frames
+                            if (Math.random() > 0.2) continue;
+
+                            if (y < CANVAS_H - 1) {
+                                const below = (y + 1) * state.levelW + x;
+                                if (this.grid[below] === TYPE_EMPTY) {
+                                    this.grid[below] = TYPE_LAVA; this.colorGrid[below] = this.colorGrid[idx]; this.grid[idx] = TYPE_EMPTY; this.colorGrid[idx] = 0xFF000000;
+                                }
+                                else if (this.grid[below] === TYPE_WATER) {
+                                    this.grid[below] = TYPE_ROCK; this.colorGrid[below] = 0xFF888899; this.grid[idx] = TYPE_ROCK; this.colorGrid[idx] = 0xFF888899;
+                                }
+                                else {
+                                    // Flow sideways if blocked by anything (including other lava)
+                                    const side = x + dir;
+                                    if (side >= 0 && side < state.levelW) {
+                                        const sIdx = y * state.levelW + side;
+                                        if (this.grid[sIdx] === TYPE_EMPTY) {
+                                            this.grid[sIdx] = TYPE_LAVA; this.colorGrid[sIdx] = this.colorGrid[idx]; this.grid[idx] = TYPE_EMPTY; this.colorGrid[idx] = 0xFF000000;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        else if (type === TYPE_BLOB) {
+                            // Wild Blob Physics - Sticky and slightly faster than lava
+                            if (Math.random() > 0.1) { // Move 90% of frames (very fluid)
+                                const below = (y + 1) * state.levelW + x;
+                                if (this.grid[below] === TYPE_EMPTY) {
+                                    this.grid[below] = TYPE_BLOB; this.colorGrid[below] = this.colorGrid[idx]; this.grid[idx] = TYPE_EMPTY; this.colorGrid[idx] = 0xFF000000;
+                                } else {
+                                    // Moves sideways or even wildly diagonally
+                                    const moveDir = Math.random() > 0.5 ? 1 : -1;
+                                    const side = x + moveDir;
+
+                                    if (side >= 0 && side < state.levelW) {
+                                        const sIdx = y * state.levelW + side;
+                                        // Randomly jump up or move side
+                                        if (this.grid[sIdx] === TYPE_EMPTY) {
+                                            this.grid[sIdx] = TYPE_BLOB; this.colorGrid[sIdx] = this.colorGrid[idx]; this.grid[idx] = TYPE_EMPTY; this.colorGrid[idx] = 0xFF000000;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+
+            render(ctx, imgData, audioData) {
+                const data = new Uint32Array(imgData.data.buffer);
+                data.fill(0xFF000000);
+                const bass = audioData.bass; const time = Date.now() * 0.005; let pulseOffset = (state.pulseMode && bass > 0.3) ? Math.floor(bass * 50) : 0;
+
+                const camX = Math.floor(state.cameraX);
+
+                // RENDER WORLD (Clipped to Viewport)
+                for (let y = 0; y < CANVAS_H; y++) {
+                    for (let x = 0; x < state.viewW; x++) {
+                        const worldX = x + camX;
+                        if (worldX >= state.levelW) continue;
+
+                        const idx = y * state.levelW + worldX;
+                        const type = this.grid[idx];
+
+                        if (type !== 0) {
+                            let col = this.colorGrid[idx];
+                            if (type === TYPE_PLANT || type === TYPE_TREE || type === TYPE_LEAF || type === TYPE_ROOT) {
+                                let sway = 0;
+                                if (type === TYPE_PLANT) sway = Math.round(Math.sin(time + y * 0.2) * 1.5);
+                                else if (type === TYPE_LEAF) sway = Math.round(Math.sin(time * 2.0 + y * 0.1) * 2.0);
+                                else if (type === TYPE_ROOT) sway = Math.round(Math.sin(time + y * 0.1) * 0.5);
+                                const newX = x + sway;
+                                if (newX >= 0 && newX < state.viewW) data[y * state.viewW + newX] = col;
+                            } else if (type === TYPE_CLOUD) {
+                                // CLOUD ANIMATION
+                                const shift = Math.round(Math.sin(time * 0.5) * 5); // Float back n forth
+                                const newX = x + shift;
+                                if (newX >= 0 && newX < state.viewW) data[y * state.viewW + newX] = col;
+                            } else if (type === TYPE_BLOB) {
+                                // Blob Pulse
+                                let g = ((col >> 8) & 0xFF) + Math.floor(Math.sin(time * 5) * 30);
+                                if (g > 255) g = 255; if (g < 100) g = 100;
+                                col = (0xFF000000 | (0x00 << 16) | (g << 8) | 0x00) >>> 0;
+                                data[y * state.viewW + x] = col;
+                            } else if (type === TYPE_STAR) {
+                                // Twinkle
+                                if (Math.random() > 0.95) col = 0xFFFFFFFF; else col = 0xFF444444;
+                                data[y * state.viewW + x] = col;
+                            } else if (type === TYPE_LED || type === TYPE_LED_FADE || type === TYPE_LED_RGB || type === TYPE_LED_STROBE) {
+                                // LED Logic
+                                let ledCol = col;
+                                if (type === TYPE_LED_FADE) {
+                                    const brightness = 0.5 + 0.5 * Math.sin(time * 2);
+                                    let r = (col & 0xFF) * brightness; let g = ((col >> 8) & 0xFF) * brightness; let b = ((col >> 16) & 0xFF) * brightness;
+                                    ledCol = (0xFF000000 | (b << 16) | (g << 8) | r) >>> 0;
+                                } else if (type === TYPE_LED_RGB) {
+                                    const hue = (time * 0.5 + (x + y) * 0.05) % 1;
+                                    ledCol = hsvToAbgr(hue, 1, 1);
+                                } else if (type === TYPE_LED_STROBE) {
+                                    if (Math.floor(time * 10) % 2 === 0) ledCol = 0xFF000000;
+                                }
+                                data[y * state.viewW + x] = ledCol;
+                            } else {
+                                if (state.pulseMode && pulseOffset > 0) {
+                                    let r = (col & 0xFF) + pulseOffset; let g = ((col >> 8) & 0xFF) + pulseOffset; let b = ((col >> 16) & 0xFF) + pulseOffset;
+                                    if (r > 255) r = 255; if (g > 255) g = 255; if (b > 255) b = 255;
+                                    col = (0xFF000000 | (b << 16) | (g << 8) | r) >>> 0;
+                                }
+                                data[y * state.viewW + x] = col;
+                            }
+                        }
+                    }
+                }
+
+                // Render Entities
+                const drawEntity = (x, y, w, h, col) => {
+                    const sx = Math.floor(x - camX);
+                    if (sx > -w && sx < state.viewW) {
+                        for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) {
+                            const idx = (Math.floor(y) + dy) * state.viewW + (sx + dx);
+                            if (idx >= 0 && idx < data.length) data[idx] = col;
+                        }
+                    }
+                };
+
+                state.blackholes.forEach(bh => {
+                    const sx = Math.floor(bh.x - camX);
+                    const sy = Math.floor(bh.y);
+                    if (sx > -50 && sx < state.viewW + 50) {
+                        for (let p = 0; p < 50; p++) {
+                            const angle = (Date.now() * 0.005) + p;
+                            const r = (p % 20) + Math.random() * 2;
+                            const px = sx + Math.cos(angle) * r;
+                            const py = sy + Math.sin(angle) * r;
+                            const idx = Math.floor(py) * state.viewW + Math.floor(px);
+                            if (idx >= 0 && idx < data.length) data[idx] = 0xFFFF00CC;
+                        }
+                    }
+                });
+
+                state.portals.forEach(p => {
+                    const sx = p.x - camX;
+                    if (sx > -10 && sx < state.viewW) {
+                        const col = p.isEntrance ? 0xFFFF9900 : 0xFF0099FF;
+                        for (let dy = 0; dy < 10; dy++) for (let dx = 0; dx < 6; dx++) {
+                            if (dx === 0 || dx === 5 || dy === 0) { const idx = (p.y + dy) * state.viewW + (sx + dx); if (idx >= 0 && idx < data.length) data[idx] = col; }
+                            else if (Math.random() > 0.5) { const idx = (p.y + dy) * state.viewW + (sx + dx); if (idx >= 0 && idx < data.length) data[idx] = 0xFFFFFFFF; }
+                        }
+                        const cx = sx + 3; const cy = p.y - 8 + Math.round(Math.sin(time * 2) * 2);
+                        const shapeType = p.targetLevel % 4; let cCol = 0xFF00FFFF; if (shapeType === 1) cCol = 0xFFFFCC00; if (shapeType === 2) cCol = 0xFF0088FF; if (shapeType === 3) cCol = 0xFF0000FF;
+                        for (let cyy = -3; cyy <= 3; cyy++) for (let cxx = -3; cxx <= 3; cxx++) {
+                            let draw = false; if (shapeType === 0) draw = (Math.abs(cxx) <= (3 + cyy)); if (shapeType === 1) draw = (Math.abs(cxx) + Math.abs(cyy) <= 3); if (shapeType === 2) draw = (cxx * cxx + cyy * cyy <= 10); if (shapeType === 3) draw = (Math.abs(cxx) <= 2 && Math.abs(cyy) <= 3);
+                            if (draw) { const cIdx = (cy + cyy) * state.viewW + (cx + cxx); if (cIdx >= 0 && cIdx < data.length) data[cIdx] = cCol; }
+                        }
+                    }
+                });
+
+                state.chests.forEach(c => {
+                    const sx = c.x - camX;
+                    if (sx > -10 && sx < state.viewW) {
+                        const col = 0xFF00D7FF;
+                        for (let dy = 0; dy < 6; dy++) for (let dx = 0; dx < 8; dx++) {
+                            const idx = (c.y + dy) * state.viewW + (sx + dx); if (idx >= 0 && idx < data.length) data[idx] = (dy === 0 || dy === 5 || dx === 0 || dx === 7 || (dx === 3 || dx === 4)) ? col : 0xFF004466;
+                        }
+                    }
+                });
+
+                state.enemies.forEach(e => {
+                    const sx = Math.floor(e.x - camX);
+                    if (sx > -20 && sx < state.viewW) {
+                        const col = e.type === 'BOSS' ? 0xFF0000FF : 0xFF3333FF; const size = e.w;
+                        for (let dy = 0; dy < size; dy++) for (let dx = 0; dx < size; dx++) { const idx = (Math.floor(e.y) + dy) * state.viewW + (sx + dx); if (idx >= 0 && idx < data.length) data[idx] = col; }
+                        if (e.type === 'BOSS') {
+                            const e1 = (Math.floor(e.y) + 3) * state.viewW + (sx + 3); if (e1 < data.length) data[e1] = 0xFFFFFFFF;
+                            const e2 = (Math.floor(e.y) + 3) * state.viewW + (sx + 8); if (e2 < data.length) data[e2] = 0xFFFFFFFF;
+                            const hpPct = e.hp / 5; const barW = 14; const bx = sx - 1; const by = Math.floor(e.y) - 6;
+                            for (let hx = 0; hx < barW; hx++) { const bIdx = by * state.viewW + (bx + hx); if (bIdx > 0 && bIdx < data.length) data[bIdx] = (hx < barW * hpPct) ? 0xFF0000FF : 0xFF444444; }
+                        }
+                    }
+                });
+
+                state.bombs.forEach(b => {
+                    const sx = Math.floor(b.x - camX);
+                    if (sx > -5 && sx < state.viewW) {
+                        const col = b.isEnemy ? 0xFF0000FF : 0xFFFFFFFF;
+                        for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const idx = (Math.floor(b.y) + dy) * state.viewW + (sx + dx); if (idx >= 0 && idx < data.length) data[idx] = col; }
+                    }
+                });
+
+                // Lasers
+                state.lasers.forEach(l => {
+                    const sx = Math.floor(l.x - camX);
+                    if (sx > 0 && sx < state.viewW) {
+                        // Horizontal Beam
+                        for (let lx = 0; lx < 8; lx++) {
+                            const idx = Math.floor(l.y) * state.viewW + (sx + lx);
+                            if (idx >= 0 && idx < data.length) data[idx] = 0xFFFFFF00; // Cyan
+                        }
+                    }
+                });
+
+                state.particles.forEach(p => {
+                    const sx = Math.floor(p.x - camX);
+                    if (sx > 0 && sx < state.viewW) {
+                        const idx = Math.floor(p.y) * state.viewW + sx; if (idx >= 0 && idx < data.length) data[idx] = p.color;
+                    }
+                });
+
+                if (player.active) {
+                    const bob = (player.grounded && player.runFrame > 0) ? Math.abs(Math.sin(player.runFrame)) * 2 : 0;
+                    const px = Math.floor(player.x - camX), py = Math.floor(player.y - bob);
+
+                    if (player.invulnTimer % 4 < 2 && px > -10 && px < state.viewW) {
+                        for (let dy = 0; dy < player.h; dy++) for (let dx = 0; dx < player.w; dx++) { const idx = (py + dy) * state.viewW + (px + dx); if (idx >= 0 && idx < data.length) data[idx] = player.color; }
+                        const eyeIdx = (py + 1) * state.viewW + (player.facing === 1 ? px + player.w - 1 : px); if (eyeIdx >= 0 && eyeIdx < data.length) data[eyeIdx] = 0xFF000000;
+                        if (player.hasJetpack) { const jX = player.facing === 1 ? px - 2 : px + player.w; for (let jdy = 0; jdy < 4; jdy++) for (let jdx = 0; jdx < 2; jdx++) { const idx = (py + 1 + jdy) * state.viewW + (jX + jdx); if (idx >= 0 && idx < data.length) data[idx] = 0xFF888888; } }
+                        // Laser Gun Graphic
+                        if (player.hasLaser) {
+                            const lx = player.facing === 1 ? px + player.w : px - 3; const ly = py + 2;
+                            for (let ldy = 0; ldy < 2; ldy++) for (let ldx = 0; ldx < 3; ldx++) { const idx = (ly + ldy) * state.viewW + (lx + ldx); if (idx >= 0 && idx < data.length) data[idx] = 0xFF00FFFF; }
+                        }
+
+                        const hpPct = player.hp / player.maxHp; const barW = 10; const bx = px - 3; const by = py - 5 + Math.floor(bob);
+                        for (let hx = 0; hx < barW; hx++) { const bIdx = by * state.viewW + (bx + hx); if (bIdx > 0 && bIdx < data.length) data[bIdx] = (hx < barW * hpPct) ? 0xFF00FF00 : 0xFF444444; }
+                    }
+                }
+            }
+        };
+
+        // --- GAME LOGIC ---
+        // TYPE_PLANET_BODY already declared above (const TYPE_PLANET_BODY = 5)
+
+        function spawnPortal(x, y) {
+            const targetLevel = state.currentLevel + 1;
+            state.portals.push({ x: Math.floor(x), y: Math.floor(y), isEntrance: true, linkId: 'next', targetLevel: targetLevel });
+        }
+        function spawnEnemy(x, y, type = 'NORMAL') { state.enemies.push({ x: x, y: y, w: type === 'BOSS' ? 12 : 6, h: type === 'BOSS' ? 12 : 6, vx: 0, vy: 0, speed: type === 'BOSS' ? 0.4 : 0.8, type: type, hp: type === 'BOSS' ? 5 : 1, grounded: false, attackTimer: 0 }); }
+        function spawnChest(x, y) { state.chests.push({ x: Math.floor(x), y: Math.floor(y) - 6, w: 8, h: 6 }); }
+        function spawnBlackHole(x, y) { state.blackholes.push({ x: x, y: y, mass: 5 }); }
+
+        function spawnPlanet(x, y, r) {
+            state.planets.push({ x: x, y: y, r: r, mass: r * 0.2 });
+            const type = state.planetType;
+
+            // Rasterize into grid
+            for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+                if (dx * dx + dy * dy <= r * r) {
+                    let col = 0xFF888888;
+
+                    if (type === 2) { // ICE / PLUTO
+                        col = 0xFFEEE8AA;
+                        if (Math.random() > 0.9) col = 0xFFFFFFFF; // Ice sparkles
+                    } else if (type === 3) { // TERRA / EARTH-LIKE
+                        col = 0xFF8B4513; // Ground
+                        if (Math.random() > 0.7) col = 0xFF00FF00; // Vegetation
+                        if (Math.random() > 0.9) col = 0xFFFF0000; // Cities?
+                    } else {
+                        // Default Moon
+                        if (Math.random() > 0.95) col = 0xFF555555; // Dark crater
+                    }
+
+                    Sim.setPixel(x + dx, y + dy, TYPE_ROCK, col);
+                }
+            }
+
+            // Ring Generation (Saturn)
+            if (type === 1) {
+                const ringR = r + 8;
+                for (let dx = -ringR; dx <= ringR; dx++) {
+                    // Flat line ring
+                    if (Math.abs(dx) > r + 1) {
+                        if (Math.random() > 0.3) Sim.setPixel(x + dx, y, TYPE_ROCK, 0xFF444444);
+                    }
+                }
+            }
+        }
+
+        function throwEnemyBomb(e) { const dx = player.x - e.x, dy = (player.y - 20) - e.y, len = Math.sqrt(dx * dx + dy * dy); state.bombs.push({ x: e.x + e.w / 2, y: e.y, vx: (dx / len) * 3, vy: -2, isEnemy: true }); Audio.playThrow(); }
+
+        function triggerLevelTransition(targetLevel) {
+            Sim.saveLevel(state.currentLevel);
+            Sim.loadLevel(targetLevel);
+            player.x = 50; state.cameraX = 0;
+            document.getElementById('scroll-slider').value = 0;
+        }
+
+        function saveWorld() {
+            Sim.saveLevel(state.currentLevel);
+            const worldData = JSON.stringify(state.levels);
+            try { localStorage.setItem('musicPixelsWorld_v7', worldData); alert("WORLD SAVED! (v7)"); } catch (e) { alert("Save failed."); }
+        }
+
+        function updateGame() {
+            // Apply Gravity from Planets/BlackHoles
+            const gravityObjs = [...state.planets, ...state.blackholes];
+            if (player.active && !player.grounded) {
+                gravityObjs.forEach(g => {
+                    const dx = g.x - player.x; const dy = g.y - player.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 150) {
+                        const force = g.mass / (dist * 0.1);
+                        player.vx += (dx / dist) * force * 0.05;
+                        player.vy += (dy / dist) * force * 0.05;
+                    }
+                });
+            }
+
+            // Camera Logic (if not in truck, handled above)
+            if (player.active) {
+                const targetCamX = player.x - (state.viewW / 2);
+                const clampedCamX = Math.max(0, Math.min(targetCamX, state.levelW - state.viewW));
+                state.cameraX += (clampedCamX - state.cameraX) * 0.1;
+                document.getElementById('scroll-slider').value = state.cameraX;
+            }
+
+            // Check cloud interaction
+            dissolveClouds(player.x, player.y, player.w, player.h);
+
+            // Lasers
+            for (let i = state.lasers.length - 1; i >= 0; i--) {
+                const l = state.lasers[i];
+                l.x += l.vx;
+                l.life--;
+
+                // Collision with enemies
+                let hit = false;
+                for (let j = state.enemies.length - 1; j >= 0; j--) {
+                    const e = state.enemies[j];
+                    if (l.x > e.x && l.x < e.x + e.w && l.y > e.y && l.y < e.y + e.h) {
+                        // Hit enemy
+                        Audio.playEnemyDeath();
+                        // One shot kill basic, or damage boss
+                        e.hp -= 5; // High damage
+                        if (e.hp <= 0) {
+                            state.enemies.splice(j, 1);
+                            // Death Particles
+                            for (let p = 0; p < 10; p++) state.particles.push({ x: e.x + e.w / 2, y: e.y + e.h / 2, vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 5, life: 20, color: 0xFF0000FF });
+                        }
+                        hit = true;
+                        break;
+                    }
+                }
+
+                if (hit || l.life <= 0 || Sim.isSolid(l.x, l.y)) {
+                    state.lasers.splice(i, 1);
+                }
+            }
+
+            // Enemies
+            for (let i = state.enemies.length - 1; i >= 0; i--) {
+                const e = state.enemies[i];
+                if (Math.abs(e.x - player.x) < state.viewW) {
+                    if (player.active) { if (player.x > e.x + 10) e.vx = e.speed; else if (player.x < e.x - 10) e.vx = -e.speed; else e.vx = 0; }
+                    if (!e.grounded) e.vy += 0.2;
+                    if (!checkRectCollision(e.x + e.vx, e.y, e.w, e.h)) e.x += e.vx;
+                    else { if (e.grounded && !checkRectCollision(e.x + e.vx, e.y - 10, e.w, e.h)) { e.vy = -3; e.grounded = false; } else e.vx = 0; }
+                    if (!checkRectCollision(e.x, e.y + e.vy, e.w, e.h)) { e.y += e.vy; e.grounded = false; }
+                    else { if (e.vy > 0) { e.grounded = true; e.vy = 0; e.y = Math.floor(e.y); } else if (e.vy < 0) e.vy = 0; }
+                    if (e.y > CANVAS_H) { state.enemies.splice(i, 1); continue; }
+
+                    dissolveClouds(e.x, e.y, e.w, e.h);
+
+                    if (e.type === 'BOSS' && player.active) { e.attackTimer++; if (e.attackTimer > 120) { e.attackTimer = 0; throwEnemyBomb(e); } }
+                    if (player.active && player.x < e.x + e.w && player.x + player.w > e.x && player.y < e.y + e.h && player.y + player.h > e.y) {
+                        if (player.invulnTimer === 0) { Audio.playHurt(); player.hp--; player.invulnTimer = 60; player.vy = -4; player.vx = (player.x < e.x) ? -5 : 5; }
+                    }
+                }
+            }
+            // Bombs
+            if (keys.bomb && player.active) { state.chargingBomb = true; if (state.bombPower < 1.0) state.bombPower += 0.02; if (Math.random() > 0.8) Audio.playCharge(); }
+            else if (!keys.bomb && state.chargingBomb) {
+                Audio.playThrow();
+                const worldMouseX = state.mouseX + state.cameraX;
+                const dx = worldMouseX - player.x, dy = state.mouseY - player.y, len = Math.sqrt(dx * dx + dy * dy), spd = 2 + (state.bombPower * 10);
+                state.bombs.push({ x: player.x, y: player.y, vx: (dx / len) * spd, vy: (dy / len) * spd, isEnemy: false });
+                state.chargingBomb = false; state.bombPower = 0;
+            }
+            for (let i = state.bombs.length - 1; i >= 0; i--) {
+                const b = state.bombs[i]; b.x += b.vx; b.y += b.vy; b.vy += 0.15;
+                dissolveClouds(b.x, b.y, 4, 4);
+
+                // Gravity on bombs too
+                gravityObjs.forEach(g => {
+                    const dx = g.x - b.x, dy = g.y - b.y, dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 100) { b.vx += (dx / dist) * 0.1; b.vy += (dy / dist) * 0.1; }
+                });
+
+                if (Sim.isSolid(b.x, b.y) || b.y > CANVAS_H) { explode(b.x, b.y, b.isEnemy); state.bombs.splice(i, 1); }
+            }
+            for (let i = state.particles.length - 1; i >= 0; i--) { const p = state.particles[i]; p.x += p.vx; p.y += p.vy; p.life--; if (p.life <= 0) state.particles.splice(i, 1); }
+            if (player.active) {
+                updatePlayer();
+                const pIdx = Math.floor(player.y + player.h) * state.levelW + Math.floor(player.x + player.w / 2);
+                if (Sim.grid[pIdx] === TYPE_LAVA) {
+                    if (player.invulnTimer === 0) { Audio.playHurt(); player.hp--; player.invulnTimer = 30; player.vy = -5; }
+                }
+            }
+        }
+
+        function dissolveClouds(x, y, w, h) {
+            const time = Date.now() * 0.005;
+            const shift = Math.round(Math.sin(time * 0.5) * 5);
+
+            const startX = Math.floor(x);
+            const startY = Math.floor(y);
+
+            for (let dy = 0; dy < h; dy++) {
+                for (let dx = 0; dx < w; dx++) {
+                    const checkX = (startX + dx) - shift;
+                    const checkY = startY + dy;
+                    if (Sim.getType(checkX, checkY) === TYPE_CLOUD) {
+                        Sim.removePixel(checkX, checkY);
+                        if (Math.random() > 0.5) state.particles.push({ x: startX + dx, y: startY + dy, vx: (Math.random() - 0.5), vy: -0.5, life: 10, color: 0xAAFFFFFF });
+                    }
+                }
+            }
+        }
+
+        function updatePlayer() {
+            player.onLadder = checkLadderOverlap(player.x, player.y, player.w, player.h);
+            player.vx *= 0.8;
+
+            // BLOB STICKY PHYSICS
+            const pCenterIdx = Math.floor(player.y + player.h / 2) * state.levelW + Math.floor(player.x + player.w / 2);
+            if (Sim.grid[pCenterIdx] === TYPE_BLOB) {
+                player.vx *= 0.5; // Highly Viscous
+                player.vy *= 0.6;
+                // Randomly add stick effect
+                if (Math.random() > 0.8) player.vy -= 0.5;
+            }
+
+            if (player.teleportCooldown > 0) player.teleportCooldown--;
+            if (player.invulnTimer > 0) player.invulnTimer--;
+            let dx = 0;
+            if (keys.left) { dx = -player.speed; player.facing = -1; }
+            if (keys.right) { dx = player.speed; player.facing = 1; }
+            if (player.hasJetpack && keys.jump && !player.grounded && !player.onLadder) {
+                player.vy -= 0.35; if (player.vy < -3) player.vy = -3; Audio.playJetpack();
+                for (let i = 0; i < 2; i++) state.particles.push({ x: player.x + Math.random() * 4, y: player.y + 8, vx: (Math.random() - 0.5), vy: 1 + Math.random() * 2, life: 10 + Math.random() * 10, color: Math.random() > 0.5 ? 0xFF0000FF : 0xFF00A5FF });
+            }
+            if (dx !== 0) {
+                if (checkRectCollision(player.x + dx, player.y, player.w, player.h)) {
+                    if (!checkRectCollision(player.x + dx, player.y - 2, player.w, player.h)) { player.x += dx; player.y -= 2; }
+                    else { const frontX = dx > 0 ? player.x + player.w : player.x - 1; const centerY = player.y + (player.h / 2); if (Sim.isSand(frontX, centerY)) { digChunk(frontX, centerY, 2); player.x += dx * 0.5; } else player.vx = 0; }
+                } else player.x += dx;
+                if (player.grounded) {
+                    player.stepTimer++;
+                    player.runFrame += 0.3;
+                    if (player.stepTimer > 10) { Audio.playFootstep(); player.stepTimer = 0; }
+                }
+            } else {
+                player.stepTimer = 10;
+                player.runFrame = 0;
+            }
+
+            if (player.onLadder) {
+                player.vy = 0; player.grounded = true;
+                if (keys.up) player.y -= 1; if (keys.down) player.y += 1;
+                if (keys.jump) { player.vy = player.jumpPower; player.onLadder = false; }
+            } else {
+                if (!player.grounded) player.vy += 0.2;
+                if (keys.jump && player.grounded) { player.vy = player.jumpPower; player.grounded = false; }
+                if (!checkRectCollision(player.x, player.y + player.vy, player.w, player.h)) { player.y += player.vy; player.grounded = false; }
+                else { if (player.vy > 0) { player.grounded = true; player.vy = 0; player.y = Math.floor(player.y); } else if (player.vy < 0) player.vy = 0; }
+            }
+            if (keys.digLeft) digChunk(player.x - 4, player.y + player.h, 2);
+            if (keys.digRight) digChunk(player.x + player.w + 1, player.y + player.h, 2);
+            if (keys.down && !player.onLadder) digChunk(player.x + (player.w / 2), player.y + player.h + 1, 2);
+            if (player.y > CANVAS_H) { player.y = 0; player.vy = 0; }
+            if (player.x < 0) player.x = 0; if (player.x > state.levelW) player.x = state.levelW - player.w;
+
+            // Chests
+            for (let i = state.chests.length - 1; i >= 0; i--) {
+                const c = state.chests[i];
+                if (player.x < c.x + c.w && player.x + player.w > c.x && player.y < c.y + c.h && player.y + player.h > c.y) {
+                    state.chests.splice(i, 1);
+
+                    // Chest Item Logic
+                    if (!player.hasJetpack) {
+                        player.hasJetpack = true;
+                    } else if (!player.hasLaser) {
+                        player.hasLaser = true;
+                    }
+
+                    Audio.playChestOpen();
+                    for (let p = 0; p < 20; p++) state.particles.push({ x: c.x + 4, y: c.y + 3, vx: (Math.random() - 0.5) * 3, vy: (Math.random() - 0.5) * 3, life: 40, color: 0xFF00D7FF });
+                }
+            }
+            // CHECK LEVEL PORTALS
+            if (player.teleportCooldown === 0) {
+                state.portals.forEach(p => {
+                    if (player.x < p.x + 6 && player.x + player.w > p.x && player.y < p.y + 10 && player.y + player.h > p.y) {
+                        if (p.targetLevel !== undefined) { triggerLevelTransition(p.targetLevel); }
+                    }
+                });
+            }
+        }
+
+        function explode(x, y, isEnemy) {
+            Audio.playExplode(); const radius = 12;
+            if (isEnemy && player.active) {
+                const dist = Math.sqrt((player.x - x) ** 2 + (player.y - y) ** 2);
+                if (dist < radius + 5 && player.invulnTimer === 0) { Audio.playHurt(); player.hp--; player.invulnTimer = 60; player.vy = -5; player.vx = (player.x < x) ? -6 : 6; }
+            }
+            for (let dy = -radius; dy <= radius; dy++) for (let dx = -radius; dx <= radius; dx++) {
+                if (Math.sqrt(dx * dx + dy * dy) < radius) {
+                    // Indestructible Rock Check
+                    if (Sim.getType(x + dx, y + dy) !== TYPE_ROCK) {
+                        Sim.removePixel(x + dx, y + dy);
+                    }
+                }
+            }
+
+            if (!isEnemy) {
+                for (let i = state.enemies.length - 1; i >= 0; i--) {
+                    const e = state.enemies[i], ex = e.x + e.w / 2, ey = e.y + e.h / 2;
+                    if (Math.sqrt((ex - x) ** 2 + (ey - y) ** 2) < radius + 15) {
+                        e.hp--;
+                        for (let p = 0; p < 10; p++) state.particles.push({ x: ex, y: ey, vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 5, life: 10, color: 0xFFFFFFFF });
+                        if (e.hp <= 0) {
+                            state.enemies.splice(i, 1);
+                            if (e.type === 'BOSS') {
+                                for (let k = 0; k < 200; k++) { state.particles.push({ x: ex, y: ey, vx: (Math.random() - 0.5) * 15, vy: (Math.random() - 0.5) * 15, life: 60 + Math.random() * 60, color: Math.random() > 0.5 ? 0xFF0000FF : 0xFFFF00FF }); }
+                                setTimeout(() => Audio.playExplode(), 100); setTimeout(() => Audio.playExplode(), 300);
+                            } else { for (let p = 0; p < 30; p++) state.particles.push({ x: ex, y: ey, vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8, life: 40, color: 0xFF0000FF }); }
+                        }
+                    }
+                }
+            }
+            for (let i = 0; i < 30; i++) state.particles.push({ x: x, y: y, vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4, life: 30 + Math.random() * 20, color: Math.random() > 0.5 ? 0xFF0000FF : 0xFF00FFFF });
+        }
+
+        function digChunk(cx, cy, r) {
+            let dug = false; for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+                const t = Sim.getType(cx + dx, cy + dy);
+                if (Sim.isSolid(cx + dx, cy + dy) && t !== TYPE_ROCK) { // Rock Check
+                    Sim.removePixel(cx + dx, cy + dy); dug = true;
+                }
+            }
+            if (dug) Audio.playDig();
+        }
+        function checkRectCollision(x, y, w, h) { for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) if (Sim.isSolid(x + dx, y + dy)) return true; return false; }
+        function checkLadderOverlap(x, y, w, h) { return Sim.isLadder(Math.floor(x + w / 2), Math.floor(y + h / 2)); }
+
+        // --- MAIN ---
+        const canvas = document.getElementById('pixelCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        // Dynamic Resolution
+        function updateCanvasSize() {
+            canvas.width = state.viewW;
+            canvas.height = CANVAS_H;
+            return ctx.createImageData(state.viewW, CANVAS_H);
+        }
+
+        let imgData = updateCanvasSize();
+
+        const helperText = document.getElementById('helper-text');
+
+        function hsvToAbgr(h, s, v) {
+            let r, g, b, i, f, p, q, t;
+            i = Math.floor(h * 6); f = h * 6 - i;
+            p = v * (1 - s); q = v * (1 - f * s); t = v * (1 - (1 - f) * s);
+            switch (i % 6) {
+                case 0: r = v; g = t; b = p; break; case 1: r = q; g = v; b = p; break; case 2: r = p; g = v; b = t; break;
+                case 3: r = p; g = q; b = v; break; case 4: r = t; g = p; b = v; break; case 5: r = v; g = p; b = q; break;
+            }
+            return (0xFF000000 | (Math.round(b * 255) << 16) | (Math.round(g * 255) << 8) | Math.round(r * 255)) >>> 0;
+        }
+
+        // --- RECORDING HELPERS ---
+        function updateAudioState(group, key, value) {
+            // Update actual state
+            state[group][key] = value;
+
+            // Record if Active
+            if (state.isRecording) {
+                let recTime = Date.now() - state.loopStartTime;
+                state.currentLoop.push({
+                    type: 'PARAM',
+                    time: recTime,
+                    group: group,
+                    key: key,
+                    value: value
+                });
+            }
+        }
+
+        function paintStroke(x, y, mode, size, timeHue) {
+            const worldX = x + Math.floor(state.cameraX);
+            const h = timeHue; let color = hsvToAbgr(h, 0.8, 1.0);
+            if (mode === 'WATER') color = 0xFFFF8800;
+            if (mode === 'LAVA') color = 0xFF0000FF + Math.floor(Math.random() * 50); // Red
+            if (mode === 'BLOB') color = 0xFF00FF00;
+            if (mode === 'GRASS') color = 0xFF00FF00;
+            if (mode === 'TREE') color = 0xFF214365;
+            if (mode === 'LEAF') { const v = Math.random() * 0.2; color = (0xFF000000 | (0x22 << 16) | (Math.floor((0x8B + v * 50)) << 8) | 0x22) >>> 0; }
+            if (mode === 'ROCK') { const b = 100 + Math.random() * 50; color = (Math.random() < state.brushVar) ? hsvToAbgr(h, 0.2, 0.6) : (0xFF000000 | (b << 16) | (b << 8) | b) >>> 0; }
+            if (mode === 'LADDER') color = 0xFF004488;
+            if (mode === 'STAR') color = 0xFFFFFFFF;
+            if (mode === 'ROOT') color = 0xFF2F4F4F;
+            if (mode === 'CLOUD') color = 0xCCFFFFFF; // Transparent White for Clouds
+
+            if (mode === 'BUILD') color = 0xFF808080;
+
+            if (mode === 'LED') {
+                if (state.ledMode === 0) color = 0xFFFFFFFF;
+            }
+
+            // PRECISION BRUSH LOGIC (Diameter based)
+            // 'size' is now diameter in pixels.
+            const startOffset = -Math.floor(size / 2);
+
+            for (let dx = startOffset; dx < startOffset + size; dx++) {
+                for (let dy = startOffset; dy < startOffset + size; dy++) {
+                    const wx = worldX + dx, wy = y + dy;
+                    if (mode === 'SAND' && Math.random() > 0.5) continue;
+                    if (mode === 'LADDER') {
+                        // Ladder needs to check relative to brush center, not just dx/dy
+                        // But for simplicity, we just apply it.
+                        // Standard ladder logic relies on specific patterns. 
+                        // If size is small (1), we just draw a ladder piece.
+                        const isRail = dx === startOffset || dx === startOffset + size - 1;
+                        if (size === 1) { applyBrush(wx, wy, mode, color); continue; }
+
+                        const isRung = (wy % 4 === 0) && (dx > startOffset && dx < startOffset + size - 1);
+                        if (isRail || isRung) applyBrush(wx, wy, mode, color); else applyBrush(wx, wy, mode, 0x00000000);
+                        continue;
+                    }
+
+                    // --- DETAIL MODE CHECK ---
+                    // If size is 1 (1px), draw 100% of the time for organic brushes to allow fine detail work
+                    const isDetailMode = (size <= 1);
+
+                    if (mode === 'GRASS' || mode === 'LEAF') {
+                        if (isDetailMode || Math.random() > 0.8) applyBrush(wx, wy, mode, color);
+                        continue;
+                    }
+                    if (mode === 'STAR') {
+                        if (isDetailMode || Math.random() > 0.98) applyBrush(wx, wy, mode, color);
+                        continue;
+                    }
+                    if (mode === 'ROOT') {
+                        if (isDetailMode || Math.random() > 0.3) applyBrush(wx, wy, mode, color);
+                        continue;
+                    }
+
+                    if (mode === 'BUILD') {
+                        const isWindow = (wx % 6 === 2 || wx % 6 === 3) && (wy % 8 === 2 || wy % 8 === 3);
+                        if (isWindow) { applyBrush(wx, wy, 'LED', 0xFFFF00FF); }
+                        else { applyBrush(wx, wy, mode, color); }
+                        continue;
+                    }
+
+                    applyBrush(wx, wy, mode, color);
+                }
+            }
+        }
+        function applyBrush(x, y, mode, color) {
+            if (mode === 'ERASE') { Sim.removePixel(x, y); if (state.mirrorMode) applyMirror(x, y, mode); }
+            else if (['GRASS', 'TREE', 'LEAF'].includes(mode)) { Sim.setPixel(x, y, mode === 'GRASS' ? TYPE_PLANT : (mode === 'TREE' ? TYPE_TREE : TYPE_LEAF), color); if (state.mirrorMode) applyMirror(x, y, mode, (mode === 'GRASS' ? TYPE_PLANT : (mode === 'TREE' ? TYPE_TREE : TYPE_LEAF)), color); }
+            else if (['STAR'].includes(mode)) { Sim.setPixel(x, y, TYPE_STAR, color); if (state.mirrorMode) applyMirror(x, y, mode, TYPE_STAR, color); }
+            else if (mode === 'ROOT') { Sim.setPixel(x, y, TYPE_ROOT, color); if (state.mirrorMode) applyMirror(x, y, mode, TYPE_ROOT, color); }
+            else if (mode === 'CLOUD') { Sim.setPixel(x, y, TYPE_CLOUD, color); if (state.mirrorMode) applyMirror(x, y, mode, TYPE_CLOUD, color); }
+            else if (mode === 'LED') {
+                let type = TYPE_LED;
+                if (state.ledMode === 1) type = TYPE_LED_FADE;
+                if (state.ledMode === 2) type = TYPE_LED_RGB;
+                if (state.ledMode === 3) type = TYPE_LED_STROBE;
+                if (color === 0xFFFF00FF) type = TYPE_LED;
+                Sim.setPixel(x, y, type, color);
+                if (state.mirrorMode) applyMirror(x, y, mode, type, color);
+            }
+            else {
+                let type = TYPE_SAND; if (mode === 'LINE' || mode === 'BUILD') type = TYPE_WALL; if (mode === 'WATER') type = TYPE_WATER; if (mode === 'LAVA') type = TYPE_LAVA; if (mode === 'BLOB') type = TYPE_BLOB; if (mode === 'LADDER') type = TYPE_LADDER; if (mode === 'ROCK') type = TYPE_ROCK;
+                Sim.setPixel(x, y, type, color); if (state.mirrorMode) applyMirror(x, y, mode, type, color);
+            }
+        }
+
+        function applyMirror(x, y, mode, type, color) {
+            const screenIndex = Math.floor(x / state.viewW);
+            const localX = x % state.viewW;
+            const mirroredLocalX = state.viewW - localX;
+            const mx = (screenIndex * state.viewW) + mirroredLocalX;
+            const my = CANVAS_H - y;
+            if (state.mirrorMode === 1 || state.mirrorMode === 3) mode === 'ERASE' ? Sim.removePixel(mx, y) : Sim.setPixel(mx, y, type, color);
+            if (state.mirrorMode === 2 || state.mirrorMode === 3) mode === 'ERASE' ? Sim.removePixel(x, my) : Sim.setPixel(x, my, type, color);
+            if (state.mirrorMode === 3) mode === 'ERASE' ? Sim.removePixel(mx, my) : Sim.setPixel(mx, my, type, color);
+        }
+
+        function handleInputStart(x, y) {
+            if (!state.isPlaying || state.drawMode === 'RUNNER') return;
+            state.isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            // Map Mouse to Viewport Pixels (0 -> viewW)
+            state.mouseX = Math.floor((x - rect.left) / rect.width * state.viewW);
+            state.mouseY = Math.floor((y - rect.top) / rect.height * CANVAS_H);
+
+            const wx = state.mouseX + state.cameraX;
+
+            // SAVE UNDO SNAPSHOT
+            Sim.saveSnapshot();
+
+            if (state.drawMode === 'PORTAL') { spawnPortal(wx, state.mouseY); return; }
+            if (state.drawMode === 'ENEMY') { spawnEnemy(wx, state.mouseY, 'NORMAL'); return; }
+            if (state.drawMode === 'BOSS') { spawnEnemy(wx, state.mouseY, 'BOSS'); return; }
+            if (state.drawMode === 'CHEST') { spawnChest(wx, state.mouseY); return; }
+            if (state.drawMode === 'VOID') { spawnBlackHole(wx, state.mouseY); return; }
+
+            if (state.drawMode === 'PLANET') {
+                state.dragStart = { x: wx, y: state.mouseY };
+                return;
+            }
+
+            if (state.drawMode !== 'ERASE') {
+                Audio.playSynth(state.mouseX, state.mouseY);
+                if (state.isRecording) {
+                    let recTime = Date.now() - state.loopStartTime;
+                    state.currentLoop.push({
+                        type: 'NOTE_ON',
+                        time: recTime,
+                        x: state.mouseX,
+                        y: state.mouseY,
+                        wx: wx,
+                        mode: state.drawMode,
+                        size: parseInt(state.brushSize)
+                    });
+                }
+            }
+        }
+
+        function handleInputMove(x, y) {
+            if (!state.isPlaying) return;
+            const rect = canvas.getBoundingClientRect();
+            state.mouseX = Math.floor((x - rect.left) / rect.width * state.viewW);
+            state.mouseY = Math.floor((y - rect.top) / rect.height * CANVAS_H);
+            if (!state.isDrawing || ['PORTAL', 'ENEMY', 'BOSS', 'CHEST', 'VOID', 'PLANET'].includes(state.drawMode)) return;
+
+            const wx = state.mouseX + state.cameraX;
+
+            if (state.isRecording) {
+                state.currentLoop.push({
+                    type: 'MOVE',
+                    time: Date.now() - state.loopStartTime,
+                    x: state.mouseX,
+                    y: state.mouseY,
+                    wx: wx,
+                    mode: state.drawMode,
+                    size: parseInt(state.brushSize)
+                });
+            }
+        }
+
+        function handleInputEnd() {
+            state.isDrawing = false;
+
+            // Handle Planet Release
+            if (state.drawMode === 'PLANET' && state.dragStart) {
+                const wx = state.mouseX + state.cameraX;
+                const dx = wx - state.dragStart.x;
+                const dy = state.mouseY - state.dragStart.y;
+                const radius = Math.sqrt(dx * dx + dy * dy);
+                if (radius > 5) spawnPlanet(state.dragStart.x, state.dragStart.y, radius);
+                state.dragStart = null;
+            }
+
+            if (state.isRecording && !['ERASE', 'PORTAL', 'ENEMY', 'BOSS', 'CHEST'].includes(state.drawMode)) {
+                let recTime = Date.now() - state.loopStartTime;
+                state.currentLoop.push({ type: 'NOTE_OFF', time: recTime });
+            }
+        }
+
+        function loop() {
+            requestAnimationFrame(loop);
+            const now = Date.now();
+            const audioData = Audio.getAnalysis();
+
+            // AUTOMATION UPDATE
+            Audio.updateParamsFrame();
+
+            Sim.update();
+            updateGame();
+
+            if (state.isDrawing && !['PORTAL', 'ENEMY', 'BOSS', 'CHEST', 'VOID', 'PLANET'].includes(state.drawMode)) {
+                const h = (now * 0.001) % 1;
+                // Bass can increase brush diameter slightly, but keep it constrained
+                const size = parseInt(state.brushSize) + Math.floor(audioData.bass * 5);
+                paintStroke(state.mouseX, state.mouseY, state.drawMode, size, h);
+            }
+
+            // LOOP PLAYBACK
+            const visualLoop = document.getElementById('chk-visual-loop').checked;
+            state.globalTime += (1000 / 60) * state.playbackSpeed;
+
+            state.loops.forEach(l => {
+                const lt = state.globalTime % l.duration;
+                l.events.filter(e => Math.abs(e.time - lt) < 20).forEach(e => {
+                    // Audio: Always Play
+                    if (e.type === 'NOTE_ON') Audio.playSynth(e.x, e.y);
+
+                    // Automation Replay
+                    if (e.type === 'PARAM') {
+                        state[e.group][e.key] = e.value;
+                    }
+
+                    // Visuals: Only if Checked
+                    if (visualLoop && (e.type === 'NOTE_ON' || e.type === 'MOVE')) {
+                        const size = (e.size || 2) + Math.floor(audioData.bass * 5);
+
+                        const wx = (e.wx !== undefined) ? e.wx : (e.x + state.cameraX);
+                        const drawX = wx - state.cameraX;
+
+                        paintStroke(drawX, e.y, e.mode || 'SAND', size, (lt * 0.001) % 1);
+                    }
+                });
+            });
+
+            Sim.render(ctx, imgData, audioData);
+
+            // Render Aim
+            if (state.chargingBomb && player.active) {
+                const dx = state.mouseX + state.cameraX - player.x;
+                const dy = state.mouseY - player.y;
+                const len = Math.sqrt(dx * dx + dy * dy), spd = 2 + (state.bombPower * 10);
+                let sx = player.x - state.cameraX, sy = player.y, svx = (dx / len) * spd, svy = (dy / len) * spd;
+                for (let i = 0; i < 15; i++) {
+                    sx += svx; sy += svy; svy += 0.15;
+                    const fx = Math.floor(sx), fy = Math.floor(sy);
+                    if (fx >= 0 && fx < state.viewW && fy >= 0 && fy < CANVAS_H) {
+                        const idx = (fy * state.viewW + fx) * 4; imgData.data[idx] = 255; imgData.data[idx + 1] = 0; imgData.data[idx + 2] = 0; imgData.data[idx + 3] = 255;
+                    }
+                }
+            }
+            ctx.putImageData(imgData, 0, 0);
+        }
+
+        // XY PAD LOGIC
+        const xyPad = document.getElementById('xy-pad');
+        const xyCursor = document.getElementById('xy-cursor');
+        let xyDragging = false;
+
+        xyPad.addEventListener('mousedown', (e) => { xyDragging = true; updateXY(e); });
+        window.addEventListener('mousemove', (e) => { if (xyDragging) { e.preventDefault(); updateXY(e); } });
+        window.addEventListener('mouseup', () => xyDragging = false);
+
+        function updateXY(e) {
+            const rect = xyPad.getBoundingClientRect();
+            let x = e.clientX - rect.left; let y = e.clientY - rect.top;
+            x = Math.max(0, Math.min(x, rect.width)); y = Math.max(0, Math.min(y, rect.height));
+            xyCursor.style.left = x + 'px'; xyCursor.style.top = y + 'px';
+            const xRatio = x / rect.width; const yRatio = 1.0 - (y / rect.height);
+            Audio.updateDelayParams(xRatio, yRatio);
+        }
+
+        document.getElementById('start-btn').addEventListener('click', () => { Audio.init(); Sim.init(); state.isPlaying = true; document.getElementById('overlay').style.display = 'none'; loop(); });
+        const container = document.getElementById('game-container');
+        container.addEventListener('mousedown', e => { if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT' && e.target.id !== 'xy-pad' && e.target.parentNode.id !== 'xy-pad') handleInputStart(e.clientX, e.clientY); });
+        window.addEventListener('mousemove', e => handleInputMove(e.clientX, e.clientY));
+        window.addEventListener('mouseup', handleInputEnd);
+
+        // MOUSE WHEEL ZOOM
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -0.1 : 0.1;
+            const newZoom = Math.min(Math.max(state.zoom + delta, 0.5), 3.0);
+
+            if (newZoom !== state.zoom) {
+                // Calculate center point in world space
+                const centerWorldX = state.cameraX + (state.viewW / 2);
+
+                state.zoom = newZoom;
+                state.viewW = Math.floor(DEFAULT_VIEW_W / state.zoom);
+
+                // Adjust camera to keep center stable
+                state.cameraX = centerWorldX - (state.viewW / 2);
+                state.cameraX = Math.max(0, Math.min(state.cameraX, state.levelW - state.viewW));
+
+                imgData = updateCanvasSize();
+                document.getElementById('scroll-slider').max = Math.max(0, state.levelW - state.viewW);
+                document.getElementById('scroll-slider').value = state.cameraX;
+            }
+        });
+
+        const modes = ['sand', 'draw', 'water', 'lava', 'blob', 'ladder', 'rock', 'grass', 'tree', 'leaf', 'star', 'planet', 'void', 'erase', 'runner', 'portal', 'enemy', 'boss', 'chest', 'led', 'build', 'root', 'cloud'];
+        modes.forEach(m => {
+            const btn = document.getElementById('btn-mode-' + m);
+            if (!btn) return;
+            btn.addEventListener('click', () => {
+                // SPECIAL LED TOGGLE LOGIC
+                if (m === 'led' && state.drawMode === 'LED') {
+                    state.ledMode = (state.ledMode + 1) % 4;
+                    const labels = ["WHITE", "FADE", "RGB", "STROBE"];
+                    btn.innerText = "LED: " + labels[state.ledMode];
+                    return;
+                }
+
+                // SPECIAL PLANET TOGGLE LOGIC
+                if (m === 'planet' && state.drawMode === 'PLANET') {
+                    state.planetType = (state.planetType + 1) % 4;
+                    const labels = ["MOON", "RINGED", "ICE", "TERRA"];
+                    btn.innerText = "PLANET: " + labels[state.planetType];
+                    return;
+                }
+
+                state.drawMode = m.toUpperCase(); if (m === 'draw') state.drawMode = 'LINE';
+                modes.forEach(om => {
+                    const b = document.getElementById('btn-mode-' + om);
+                    if (b) b.classList.remove('active');
+                });
+                btn.classList.add('active'); btn.blur();
+                if (m === 'runner') { player.active = true; player.x = state.cameraX + 20; player.y = 50; document.getElementById('helper-text').style.opacity = 1; }
+                else { player.active = false; document.getElementById('helper-text').style.opacity = 0; }
+            });
+        });
+
+        document.getElementById('btn-stop').addEventListener('click', () => state.loops = []);
+        document.getElementById('btn-clear').addEventListener('click', () => { Sim.clear(); state.loops = []; });
+        document.getElementById('btn-undo').addEventListener('click', () => { Sim.undo(); });
+        document.getElementById('btn-redo').addEventListener('click', () => { Sim.redo(); });
+
+        const btnPulse = document.getElementById('btn-pulse');
+        btnPulse.addEventListener('click', () => { state.pulseMode = !state.pulseMode; btnPulse.classList.toggle('active'); btnPulse.innerText = state.pulseMode ? "PULSE: ON" : "PULSE: OFF"; btnPulse.blur(); });
+
+        document.getElementById('btn-rec').addEventListener('click', function () {
+            state.isRecording = !state.isRecording; this.classList.toggle('active'); this.innerText = state.isRecording ? "STOP REC" : "REC LOOP";
+            if (state.isRecording) { state.currentLoop = []; state.loopStartTime = Date.now(); }
+            else if (state.currentLoop.length > 0) {
+                let duration = Date.now() - state.loopStartTime;
+                state.loops.push({ duration: duration, events: state.currentLoop });
+            }
+        });
+
+        document.getElementById('btn-mirror').addEventListener('click', function () { state.mirrorMode = (state.mirrorMode + 1) % 4; this.innerText = "MIR: " + ["OFF", "HORZ", "VERT", "QUAD"][state.mirrorMode]; });
+        document.getElementById('brush-size').addEventListener('input', e => state.brushSize = e.target.value);
+        document.getElementById('wave-select').addEventListener('change', e => updateAudioState('synth', 'waveform', e.target.value));
+
+        ['atk', 'rel', 'vol'].forEach(k => document.getElementById('p-' + k).addEventListener('input', e => updateAudioState('synth', k, parseFloat(e.target.value))));
+
+        // LEVEL EDITOR UI LOGIC
+        const scrollSlider = document.getElementById('scroll-slider');
+        scrollSlider.addEventListener('input', (e) => {
+            state.cameraX = parseFloat(e.target.value);
+        });
+
+        // ZOOM BUTTONS LOGIC
+        const updateZoom = (delta) => {
+            const newZoom = Math.min(Math.max(state.zoom + delta, 0.5), 3.0);
+            if (newZoom !== state.zoom) {
+                const centerWorldX = state.cameraX + (state.viewW / 2);
+                state.zoom = newZoom;
+                state.viewW = Math.floor(DEFAULT_VIEW_W / state.zoom);
+                state.cameraX = centerWorldX - (state.viewW / 2);
+                state.cameraX = Math.max(0, Math.min(state.cameraX, state.levelW - state.viewW));
+                imgData = updateCanvasSize();
+                scrollSlider.max = Math.max(0, state.levelW - state.viewW);
+                scrollSlider.value = state.cameraX;
+            }
+        };
+
+        document.getElementById('btn-zoom-in').addEventListener('click', () => updateZoom(0.1));
+        document.getElementById('btn-zoom-out').addEventListener('click', () => updateZoom(-0.1));
+
+        document.getElementById('input-screens').addEventListener('change', (e) => {
+            const val = parseInt(e.target.value);
+            if (val > 0) Sim.resize(val);
+        });
+
+        /* REPLACED BY BUTTONS AND MOUSE WHEEL
+        const zoomSlider = document.getElementById('zoom-slider');
+        zoomSlider.addEventListener('input', (e) => { ... });
+        */
+
+        document.getElementById('chk-gen').addEventListener('change', e => state.autoGen = e.target.checked);
+        document.getElementById('btn-save-level').addEventListener('click', saveWorld);
+
+    </script>
+</body>
+
+</html>
